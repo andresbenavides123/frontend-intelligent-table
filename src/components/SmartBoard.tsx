@@ -83,6 +83,14 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
             if (msg.action === 'clear') {
                 canvasRef.current?.clearCanvas();
                 clearElements(true);
+            } else if (msg.action === 'feedback' && msg.payload) {
+                try {
+                    const data = JSON.parse(msg.payload);
+                    if (data.subject) onSubjectChange(data.subject);
+                    if (data.feedback) onFeedbackReceived(data.feedback);
+                } catch (e) {
+                    console.error('Failed to parse feedback payload', e);
+                }
             } else if (msg.action === 'add' && msg.element) {
                 if (msg.element.type === 'path') {
                     try {
@@ -99,7 +107,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 }
             }
         });
-    }, [ws, clearElements, addText, addImage, canvasRef]);
+    }, [ws, clearElements, addText, addImage, canvasRef, onSubjectChange, onFeedbackReceived]);
 
     const clearCanvas = () => {
         handleClear();
@@ -130,6 +138,11 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                     base64Image: base64Data.split(',')[1] || base64Data, // api needs base64 without prefix typically, or depends on backend. We'll send standard base64.
                 });
                 onFeedbackReceived(response.aiFeedback);
+                
+                ws.sendBoardSync({
+                    action: 'feedback',
+                    payload: JSON.stringify({ subject: response.subject || subject, feedback: response.aiFeedback })
+                });
             }
         } catch (err) {
             const errorMessage = err instanceof Error

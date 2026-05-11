@@ -6,6 +6,7 @@ import { MediaControls } from './components/VideoConference/MediaControls';
 import { useMediaControls } from './hooks/useMediaControls';
 import { checkBackendHealth } from './services/apiService';
 import { WebSocketProvider } from './context/WebSocketContext';
+import { WaitingRoom } from './components/WaitingRoom/WaitingRoom';
 import './index.css';
 
 function App() {
@@ -15,6 +16,8 @@ function App() {
     const [currentSubject, setCurrentSubject] = useState<string>('Matemáticas');
     const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'unknown'>('unknown');
     const [roomId, setRoomId] = useState<string | null>(null);
+    const [hasJoined, setHasJoined] = useState<boolean>(false);
+    const [userName, setUserName] = useState<string>('');
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -65,6 +68,24 @@ function App() {
     const handleNewAnalysis = () => {
         setAnalysisCount((prev) => prev + 1);
     };
+
+    if (!hasJoined) {
+        return (
+            <WaitingRoom
+                stream={stream}
+                roomId={roomId}
+                isVideoEnabled={isVideoEnabled}
+                isAudioEnabled={isAudioEnabled}
+                toggleVideo={toggleVideo}
+                toggleAudio={toggleAudio}
+                error={error}
+                onJoin={(name) => {
+                    setUserName(name);
+                    setHasJoined(true);
+                }}
+            />
+        );
+    }
 
     return (
         <>

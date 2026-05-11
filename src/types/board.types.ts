@@ -55,10 +55,11 @@ export interface BoardElementDto {
 }
 
 export interface BoardSyncMessageDto {
-    action: 'add' | 'update' | 'delete' | 'clear';
+    action: 'add' | 'update' | 'delete' | 'clear' | 'feedback';
     roomId: string;
     senderId: string;
     element?: BoardElementDto;
+    payload?: string;
 }
 
 export interface WebRtcMessageDto {
