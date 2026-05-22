@@ -8,6 +8,8 @@ import { checkBackendHealth, getToken } from './services/apiService';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { WaitingRoom } from './components/WaitingRoom/WaitingRoom';
 import { CallEndedRoom } from './components/CallEndedRoom/CallEndedRoom';
+import { generateRoomId, decodeJwtPayload } from './utils/appUtils';
+import { SUBJECTS } from './constants/board.constants';
 import './index.css';
 
 // ── Minimal toast (no external library needed) ──────────────────────────────
@@ -24,7 +26,7 @@ function App() {
     const [feedback, setFeedback] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
-    const [currentSubject, setCurrentSubject] = useState<string>('Matemáticas');
+    const [currentSubject, setCurrentSubject] = useState<string>(SUBJECTS[0].value);
     const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'unknown'>('unknown');
     const [roomId, setRoomId] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -46,25 +48,16 @@ function App() {
         const tokenParam = params.get('token');
 
         if (!room) {
-            room = Math.random().toString(36).substring(2, 10);
+            room = generateRoomId();
             window.history.replaceState({}, '', `?room=${room}`);
         }
         setRoomId(room);
 
         if (tokenParam) {
             setToken(tokenParam);
-            try {
-                const base64Url = tokenParam.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                const payload = JSON.parse(jsonPayload);
-                if (payload.name) {
-                    setUserName(payload.name);
-                }
-            } catch (e) {
-                console.error("Failed to decode JWT payload", e);
+            const payload = decodeJwtPayload(tokenParam);
+            if (payload && payload.name) {
+                setUserName(payload.name);
             }
         }
     }, []);
@@ -97,7 +90,7 @@ function App() {
 
     const handleEndCall = useCallback(() => {
         stopAllMedia();
-        // Volver a la sala de espera al terminar la llamada y mostrar pantalla de fin
+        // Return to waiting room on call end and show end screen
         setHasJoined(false);
         setCallEnded(true);
     }, [stopAllMedia]);
@@ -124,8 +117,8 @@ function App() {
                     setCallEnded(false);
                 }}
                 onGoHome={() => {
-                    // Generar nueva sala
-                    const newRoom = Math.random().toString(36).substring(2, 10);
+                    // Generate new room
+                    const newRoom = generateRoomId();
                     window.history.pushState({}, '', `?room=${newRoom}`);
                     setRoomId(newRoom);
                     setToken(null);
@@ -149,13 +142,13 @@ function App() {
                 initialName={userName}
                 onJoin={async (name) => {
                     setUserName(name);
-                    // Obtener el token JWT antes de unirse a la sala
+                    // Obtain JWT token before joining room
                     if (roomId) {
                         try {
                             const jwt = await getToken(roomId, name);
                             setToken(jwt);
                         } catch (e) {
-                            console.error('No se pudo obtener el token JWT:', e);
+                            console.error('Failed to obtain JWT token:', e);
                         }
                     }
                     setHasJoined(true);

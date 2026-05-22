@@ -142,8 +142,8 @@ export const useWebSocket = (roomId: string | null, token: string | null) => {
     }, []);
 
     /**
-     * Suscribe a eventos "init" enviados exclusivamente a este cliente
-     * con el historial de la pizarra de la sala al momento de conectarse.
+     * Subscribes to "init" events sent exclusively to this client,
+     * containing the room's whiteboard history at connection time.
      */
     const subscribeInit = useCallback((callback: (msg: BoardSyncMessageDto) => void) => {
         boardInitListenersRef.current.add(callback);

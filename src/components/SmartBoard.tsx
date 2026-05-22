@@ -57,7 +57,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         setDrawingColor,
         setDrawingWidth,
     } = useSmartBoard(
-        'Matemáticas',
+        SUBJECTS[0].value,
         handleStrokeAdded,
         // ← No `onCleared` here. clearCanvas (below) sends the WS event once.
     );

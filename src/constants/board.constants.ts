@@ -1,13 +1,13 @@
 import type { ColorSwatch, StrokeSize, SubjectOption, ThinkingStep } from '../types/board.types';
 
 export const COLORS: ColorSwatch[] = [
-    { value: '#000000', label: 'Negro' },
-    { value: '#1e40af', label: 'Azul' },
-    { value: '#15803d', label: 'Verde' },
-    { value: '#b91c1c', label: 'Rojo' },
-    { value: '#7c3aed', label: 'Violeta' },
-    { value: '#d97706', label: 'Naranja' },
-    { value: '#be185d', label: 'Rosa' },
+    { value: '#000000', label: 'Black' },
+    { value: '#1e40af', label: 'Blue' },
+    { value: '#15803d', label: 'Green' },
+    { value: '#b91c1c', label: 'Red' },
+    { value: '#7c3aed', label: 'Violet' },
+    { value: '#d97706', label: 'Orange' },
+    { value: '#be185d', label: 'Pink' },
 ];
 
 export const STROKES: StrokeSize[] = [

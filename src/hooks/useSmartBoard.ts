@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import type { ReactSketchCanvasRef, CanvasPath } from 'react-sketch-canvas';
 
 export const useSmartBoard = (
-    initialSubject: string = 'Matemáticas',
+    initialSubject: string = 'Mathematics',
     onStrokeAdded?: (path: CanvasPath, isEraser: boolean) => void,
     onCleared?: () => void
 ) => {
