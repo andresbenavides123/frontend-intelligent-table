@@ -4,10 +4,21 @@ import { AIFeedbackPanel } from './components/AIFeedbackPanel';
 import { VideoConferencePanel } from './components/VideoConference/VideoConferencePanel';
 import { MediaControls } from './components/VideoConference/MediaControls';
 import { useMediaControls } from './hooks/useMediaControls';
-import { checkBackendHealth } from './services/apiService';
+import { checkBackendHealth, getToken } from './services/apiService';
 import { WebSocketProvider } from './context/WebSocketContext';
 import { WaitingRoom } from './components/WaitingRoom/WaitingRoom';
+import { CallEndedRoom } from './components/CallEndedRoom/CallEndedRoom';
 import './index.css';
+
+// ── Minimal toast (no external library needed) ──────────────────────────────
+function useToast() {
+    const [toast, setToast] = useState<string | null>(null);
+    const showToast = useCallback((msg: string, duration = 2500) => {
+        setToast(msg);
+        setTimeout(() => setToast(null), duration);
+    }, []);
+    return { toast, showToast };
+}
 
 function App() {
     const [feedback, setFeedback] = useState<string | null>(null);
@@ -16,17 +27,46 @@ function App() {
     const [currentSubject, setCurrentSubject] = useState<string>('Matemáticas');
     const [backendStatus, setBackendStatus] = useState<'online' | 'offline' | 'unknown'>('unknown');
     const [roomId, setRoomId] = useState<string | null>(null);
+    const [token, setToken] = useState<string | null>(null);
     const [hasJoined, setHasJoined] = useState<boolean>(false);
+    const [callEnded, setCallEnded] = useState<boolean>(false);
     const [userName, setUserName] = useState<string>('');
+    const { toast, showToast } = useToast();
+
+    // Live clock — evaluates every second (not just on first render)
+    const [currentTime, setCurrentTime] = useState(() => new Date());
+    useEffect(() => {
+        const tick = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(tick);
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         let room = params.get('room');
+        const tokenParam = params.get('token');
+
         if (!room) {
             room = Math.random().toString(36).substring(2, 10);
             window.history.replaceState({}, '', `?room=${room}`);
         }
         setRoomId(room);
+
+        if (tokenParam) {
+            setToken(tokenParam);
+            try {
+                const base64Url = tokenParam.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                if (payload.name) {
+                    setUserName(payload.name);
+                }
+            } catch (e) {
+                console.error("Failed to decode JWT payload", e);
+            }
+        }
     }, []);
 
     // Poll backend health on mount and every 10 seconds
@@ -51,8 +91,16 @@ function App() {
         error, 
         toggleVideo, 
         toggleAudio,
-        toggleScreenShare 
+        toggleScreenShare,
+        stopAllMedia,
     } = useMediaControls();
+
+    const handleEndCall = useCallback(() => {
+        stopAllMedia();
+        // Volver a la sala de espera al terminar la llamada y mostrar pantalla de fin
+        setHasJoined(false);
+        setCallEnded(true);
+    }, [stopAllMedia]);
 
     const handleFeedbackReceived = (newFeedback: string) => {
         setFeedback(newFeedback);
@@ -69,6 +117,25 @@ function App() {
         setAnalysisCount((prev) => prev + 1);
     };
 
+    if (callEnded) {
+        return (
+            <CallEndedRoom 
+                onRejoin={() => {
+                    setCallEnded(false);
+                }}
+                onGoHome={() => {
+                    // Generar nueva sala
+                    const newRoom = Math.random().toString(36).substring(2, 10);
+                    window.history.pushState({}, '', `?room=${newRoom}`);
+                    setRoomId(newRoom);
+                    setToken(null);
+                    setCallEnded(false);
+                    setHasJoined(false);
+                }}
+            />
+        );
+    }
+
     if (!hasJoined) {
         return (
             <WaitingRoom
@@ -79,8 +146,18 @@ function App() {
                 toggleVideo={toggleVideo}
                 toggleAudio={toggleAudio}
                 error={error}
-                onJoin={(name) => {
+                initialName={userName}
+                onJoin={async (name) => {
                     setUserName(name);
+                    // Obtener el token JWT antes de unirse a la sala
+                    if (roomId) {
+                        try {
+                            const jwt = await getToken(roomId, name);
+                            setToken(jwt);
+                        } catch (e) {
+                            console.error('No se pudo obtener el token JWT:', e);
+                        }
+                    }
                     setHasJoined(true);
                 }}
             />
@@ -89,7 +166,7 @@ function App() {
 
     return (
         <>
-        <WebSocketProvider roomId={roomId}>
+        <WebSocketProvider roomId={roomId} token={token}>
             {/* App Wrapper */}
             <div className="app-wrapper">
                 {/* Header */}
@@ -120,11 +197,12 @@ function App() {
                 {/* Main Layout */}
                 <main className="main-content">
                     {/* Left: Video Call */}
-                    <VideoConferencePanel 
+                    <VideoConferencePanel
                         stream={isScreenSharing && screenStream ? screenStream : stream}
                         error={error}
                         isVideoEnabled={isVideoEnabled}
                         isAudioEnabled={isAudioEnabled}
+                        userName={userName}
                     />
 
                     {/* Center: Smart Board or Screen Share */}
@@ -156,6 +234,7 @@ function App() {
                                 onNewAnalysis={handleNewAnalysis}
                                 onSubjectChange={setCurrentSubject}
                                 isLoading={isLoading}
+                                token={token}
                             />
                         )}
                     </div>
@@ -170,15 +249,19 @@ function App() {
                 {/* Bottom Control Bar (Meet Style) */}
                 <footer className="app-footer">
                     <div className="footer-left">
-                        <span className="time-display">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span className="time-display">
+                            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                         <span className="separator">|</span>
                         <span className="meeting-id" title="Comparte este enlace para invitar a otros">{roomId}</span>
-                        <button 
-                            className="footer-btn" 
-                            style={{marginLeft: '8px', fontSize: '14px', padding: '4px 8px'}}
+                        <button
+                            className="footer-btn"
+                            style={{ marginLeft: '8px', fontSize: '14px', padding: '4px 8px' }}
                             onClick={() => {
-                                navigator.clipboard.writeText(window.location.href);
-                                alert('Enlace de la sala copiado al portapapeles');
+                                navigator.clipboard
+                                    .writeText(window.location.href)
+                                    .then(() => showToast('✅ Enlace copiado al portapapeles'))
+                                    .catch(() => showToast('❌ No se pudo copiar el enlace'));
                             }}
                             title="Copiar enlace de la sala"
                         >
@@ -193,6 +276,7 @@ function App() {
                             onToggleVideo={toggleVideo}
                             onToggleAudio={toggleAudio}
                             onToggleScreenShare={toggleScreenShare}
+                            onEndCall={handleEndCall}
                         />
                     </div>
                     <div className="footer-right">
@@ -201,6 +285,29 @@ function App() {
                     </div>
                 </footer>
             </div>
+
+            {/* Toast notification */}
+            {toast && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '96px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(30,30,30,0.92)',
+                    color: '#fff',
+                    padding: '0.6rem 1.25rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                    zIndex: 9999,
+                    pointerEvents: 'none',
+                    backdropFilter: 'blur(8px)',
+                    animation: 'fb-fadein 0.25s ease',
+                }}>
+                    {toast}
+                </div>
+            )}
         </WebSocketProvider>
         </>
     );

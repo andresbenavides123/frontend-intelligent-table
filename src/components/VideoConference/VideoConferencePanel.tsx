@@ -1,10 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { useWebRTC } from '../../hooks/useWebRTC';
+
 export interface VideoConferencePanelProps {
     stream: MediaStream | null;
     error: string | null;
     isVideoEnabled: boolean;
     isAudioEnabled: boolean;
+    /** Name of the local user — used to render the avatar initial when camera is off */
+    userName?: string;
 }
 
 export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
@@ -12,10 +15,14 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
     error,
     isVideoEnabled,
     isAudioEnabled,
+    userName = '',
 }) => {
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
     const { remoteStream } = useWebRTC(stream);
+
+    // Derive avatar initial from the user's name, falling back to "?"
+    const localInitial = userName.trim().charAt(0).toUpperCase() || '?';
 
     useEffect(() => {
         if (localVideoRef.current && stream) {
@@ -40,7 +47,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
 
             <div className="video-grid">
                 {error && <div className="video-error">{error}</div>}
-                
+
                 {/* Local Video */}
                 <div className="video-container local-video">
                     {isVideoEnabled ? (
@@ -48,12 +55,12 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
                             ref={localVideoRef}
                             autoPlay
                             playsInline
-                            muted // Local video must be muted to avoid echo
+                            muted
                             className="video-element"
                         />
                     ) : (
                         <div className="video-avatar">
-                            <span className="avatar-initial">T</span>
+                            <span className="avatar-initial">{localInitial}</span>
                         </div>
                     )}
                     <div className="video-overlay">
@@ -62,7 +69,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
                     </div>
                 </div>
 
-                {/* Remote Participant Placeholder or Stream */}
+                {/* Remote Participant */}
                 <div className="video-container remote-video">
                     {remoteStream ? (
                         <video
@@ -78,13 +85,12 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
                     )}
                     <div className="video-overlay">
                         <span className="participant-name">
-                            {remoteStream ? 'Profesor / Alumno' : 'Esperando a alguien...'}
+                            {remoteStream ? 'Profesor / Alumno' : 'Esperando participante...'}
                         </span>
                         {!remoteStream && <span className="participant-muted">🔇</span>}
                     </div>
                 </div>
             </div>
-
         </div>
     );
 };
