@@ -66,7 +66,8 @@ export const analyzeBoard = async (data: ExerciseRequest, token: string): Promis
 export const checkBackendHealth = async (): Promise<boolean> => {
     try {
         // Try actuator health first (if Spring Actuator is enabled)
-        await axios.get('/actuator/health', { timeout: 5_000 });
+        const healthUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/actuator/health` : '/actuator/health';
+        await axios.get(healthUrl, { timeout: 5_000 });
         return true;
     } catch (actuatorErr) {
         const ae = actuatorErr as AxiosError;
