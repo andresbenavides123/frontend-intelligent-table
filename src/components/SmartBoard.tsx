@@ -1,7 +1,8 @@
 import React from 'react';
 import { ReactSketchCanvas } from 'react-sketch-canvas';
+import type { CanvasPath } from 'react-sketch-canvas';
 import { analyzeBoard } from '../services/apiService';
-import type { SmartBoardProps } from '../types/board.types';
+import type { SmartBoardProps, BoardElementDto } from '../types/board.types';
 import { SUBJECTS } from '../constants/board.constants';
 import { useSmartBoard } from '../hooks/useSmartBoard';
 import { useBoardElements } from '../hooks/useBoardElements';
@@ -15,10 +16,13 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
     onNewAnalysis,
     onSubjectChange,
     isLoading,
+    token,
 }) => {
     const ws = useWebSocketContext();
 
-    const handleStrokeAdded = React.useCallback((path: any) => {
+    // ── Sync callbacks (passed to hooks so they broadcast WITHOUT triggering
+    //    an extra WS send from clearCanvas — see Fix #2 below)
+    const handleStrokeAdded = React.useCallback((path: CanvasPath) => {
         ws.sendBoardSync({
             action: 'add',
             element: {
@@ -28,13 +32,9 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 y: 0,
                 content: JSON.stringify(path),
                 color: path.strokeColor,
-                size: path.strokeWidth
-            }
+                size: path.strokeWidth,
+            },
         });
-    }, [ws]);
-
-    const handleBoardCleared = React.useCallback(() => {
-        ws.sendBoardSync({ action: 'clear' });
     }, [ws]);
 
     const {
@@ -56,9 +56,13 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         toggleEraser,
         setDrawingColor,
         setDrawingWidth,
-    } = useSmartBoard('Matemáticas', handleStrokeAdded, handleBoardCleared);
+    } = useSmartBoard(
+        'Matemáticas',
+        handleStrokeAdded,
+        // ← No `onCleared` here. clearCanvas (below) sends the WS event once.
+    );
 
-    const handleElementAdded = React.useCallback((element: any) => {
+    const handleElementAdded = React.useCallback((element: BoardElementDto) => {
         ws.sendBoardSync({ action: 'add', element });
     }, [ws]);
 
@@ -72,10 +76,14 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         finishTyping,
         cancelTyping,
         clearElements,
-    } = useBoardElements(handleElementAdded, handleBoardCleared);
+    } = useBoardElements(
+        handleElementAdded,
+        // ← No `onCleared` here either.
+    );
 
     const boardContainerRef = React.useRef<HTMLDivElement>(null);
 
+    // ── Receive remote board events
     React.useEffect(() => {
         return ws.subscribeBoard(async (msg) => {
             if (msg.senderId === ws.senderId) return;
@@ -85,20 +93,20 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 clearElements(true);
             } else if (msg.action === 'feedback' && msg.payload) {
                 try {
-                    const data = JSON.parse(msg.payload);
+                    const data = JSON.parse(msg.payload) as { subject?: string; feedback?: string };
                     if (data.subject) onSubjectChange(data.subject);
                     if (data.feedback) onFeedbackReceived(data.feedback);
                 } catch (e) {
-                    console.error('Failed to parse feedback payload', e);
+                    console.error('[SmartBoard] Failed to parse remote feedback payload', e);
                 }
             } else if (msg.action === 'add' && msg.element) {
                 if (msg.element.type === 'path') {
                     try {
-                        const pathData = JSON.parse(msg.element.content);
-                        const currentPaths = await canvasRef.current?.exportPaths() || [];
+                        const pathData = JSON.parse(msg.element.content) as CanvasPath;
+                        const currentPaths = await canvasRef.current?.exportPaths() ?? [];
                         canvasRef.current?.loadPaths([...currentPaths, pathData]);
                     } catch (e) {
-                        console.error('Failed to parse remote path', e);
+                        console.error('[SmartBoard] Failed to parse remote path', e);
                     }
                 } else if (msg.element.type === 'text') {
                     addText(msg.element.content, msg.element.x, msg.element.y, true, msg.element.id);
@@ -109,14 +117,69 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         });
     }, [ws, clearElements, addText, addImage, canvasRef, onSubjectChange, onFeedbackReceived]);
 
+    // ── Restore board state from server history (fires once on (re)connect) ──
+    React.useEffect(() => {
+        return ws.subscribeInit(async (msg) => {
+            if (msg.action !== 'init' || !msg.payload) return;
+
+            console.log('[SmartBoard] Restoring board history from server...');
+
+            let elements: Array<{
+                id: string; type: string; x: number; y: number;
+                content: string; color: string; size: number;
+            }>;
+
+            try {
+                elements = JSON.parse(msg.payload);
+            } catch (e) {
+                console.error('[SmartBoard] Failed to parse board history payload', e);
+                return;
+            }
+
+            // Separate paths from overlay elements
+            const paths: CanvasPath[] = [];
+            for (const el of elements) {
+                if (el.type === 'path') {
+                    try {
+                        const path = JSON.parse(el.content) as CanvasPath;
+                        paths.push(path);
+                    } catch {
+                        console.warn('[SmartBoard] Skipping unparseable path in history');
+                    }
+                } else if (el.type === 'text') {
+                    // isRemote=true to avoid broadcasting back to server
+                    addText(el.content, el.x, el.y, true, el.id);
+                } else if (el.type === 'image') {
+                    addImage(el.content, el.x, el.y, true, el.id);
+                }
+            }
+
+            // Load all paths at once for performance
+            if (paths.length > 0) {
+                await canvasRef.current?.loadPaths(paths);
+            }
+
+            console.log(`[SmartBoard] Board restored: ${paths.length} paths, ${elements.length - paths.length} overlay elements`);
+        });
+    }, [ws, addText, addImage, canvasRef]);
+
+    /**
+     * Clears the board locally AND notifies all peers.
+     *
+     * ⚠️  Previously this sent 3 WS messages because:
+     *       handleClear()  → onCleared() → sendBoardSync  (1st)
+     *       clearElements() → onCleared() → sendBoardSync (2nd)
+     *       handleBoardCleared() explicitly            (3rd)
+     *
+     *     Fixed by NOT wiring onCleared to the hooks and sending once here.
+     */
     const clearCanvas = () => {
-        handleClear();
-        clearElements();
-        handleBoardCleared();
+        handleClear();         // resets canvas SVG + state (no WS call)
+        clearElements();       // resets overlays state  (no WS call)
+        ws.sendBoardSync({ action: 'clear' }); // ← single broadcast
         onFeedbackReceived('');
     };
 
-    // Board has content if there are drawn strokes OR overlay elements (text/images)
     const boardHasContent = hasContent || elements.length > 0;
 
     const handleAnalyze = async () => {
@@ -126,28 +189,32 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         onNewAnalysis();
 
         try {
-            // Capture the whole board container including the sketch canvas and overlays
-            if (boardContainerRef.current) {
-                const canvas = await html2canvas(boardContainerRef.current, {
-                    backgroundColor: '#ffffff',
-                    useCORS: true,
-                });
-                const base64Data = canvas.toDataURL('image/png');
-                const response = await analyzeBoard({
+            const canvas = await html2canvas(boardContainerRef.current, {
+                backgroundColor: '#ffffff',
+                useCORS: true,
+            });
+            const base64Data = canvas.toDataURL('image/png');
+            const response = await analyzeBoard(
+                {
                     subject,
-                    base64Image: base64Data.split(',')[1] || base64Data, // api needs base64 without prefix typically, or depends on backend. We'll send standard base64.
-                });
-                onFeedbackReceived(response.aiFeedback);
-                
-                ws.sendBoardSync({
-                    action: 'feedback',
-                    payload: JSON.stringify({ subject: response.subject || subject, feedback: response.aiFeedback })
-                });
-            }
+                    base64Image: base64Data.split(',')[1] ?? base64Data,
+                },
+                token ?? '',
+            );
+            onFeedbackReceived(response.aiFeedback);
+
+            ws.sendBoardSync({
+                action: 'feedback',
+                payload: JSON.stringify({
+                    subject: response.subject ?? subject,
+                    feedback: response.aiFeedback,
+                }),
+            });
         } catch (err) {
-            const errorMessage = err instanceof Error
-                ? err.message
-                : 'Error de conexión con el servidor. Verifica que el backend esté activo en el puerto 8080.';
+            const errorMessage =
+                err instanceof Error
+                    ? err.message
+                    : 'Error de conexión con el servidor.';
             console.error('[SmartBoard] handleAnalyze error:', err);
             onFeedbackReceived(`⚠️ ${errorMessage}`);
         } finally {
@@ -156,28 +223,20 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
     };
 
     const handlePaste = (e: React.ClipboardEvent) => {
-            const items = e.clipboardData.items;
-            for (let i = 0; i < items.length; i++) {
-                if (items[i].type.indexOf('image') !== -1) {
-                    const blob = items[i].getAsFile();
-                    if (blob) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            if (event.target?.result) {
-                                // Default position for pasted image
-                                addImage(event.target.result as string, 50, 50);
-                            }
-                        };
-                        reader.readAsDataURL(blob);
-                    }
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith('image/')) {
+                const blob = items[i].getAsFile();
+                if (blob) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        if (event.target?.result) {
+                            addImage(event.target.result as string, 50, 50);
+                        }
+                    };
+                    reader.readAsDataURL(blob);
                 }
             }
-        };
-
-    const handleCanvasClick = () => {
-        if (!isTyping) {
-            // If we have a text tool active, we could check state here.
-            // For now, let's just make double click start typing
         }
     };
 
@@ -230,11 +289,10 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
             />
 
             {/* Canvas */}
-            <div 
-                className="canvas-wrapper" 
-                ref={boardContainerRef} 
+            <div
+                className="canvas-wrapper"
+                ref={boardContainerRef}
                 onDoubleClick={handleDoubleClick}
-                onClick={handleCanvasClick}
                 style={{ position: 'relative' }}
             >
                 {!hasContent && elements.length === 0 && (
@@ -245,8 +303,8 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                         </div>
                     </div>
                 )}
-                
-                {/* Overlays */}
+
+                {/* Overlay elements (text / images) */}
                 {elements.map((el) => (
                     <div
                         key={el.id}
@@ -259,13 +317,20 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                         }}
                     >
                         {el.type === 'text' ? (
-                            <span style={{ fontSize: '1.2rem', color: strokeColor, fontFamily: 'var(--font-main)', fontWeight: 600 }}>{el.content}</span>
+                            <span style={{ fontSize: '1.2rem', color: strokeColor, fontFamily: 'var(--font-main)', fontWeight: 600 }}>
+                                {el.content}
+                            </span>
                         ) : (
-                            <img src={el.content} alt="Pasted" style={{ maxWidth: '300px', maxHeight: '300px', borderRadius: '4px', border: '2px solid var(--accent-primary)' }} />
+                            <img
+                                src={el.content}
+                                alt="Imagen pegada"
+                                style={{ maxWidth: '300px', maxHeight: '300px', borderRadius: '4px', border: '2px solid var(--accent-primary)' }}
+                            />
                         )}
                     </div>
                 ))}
 
+                {/* Inline text input */}
                 {isTyping && (
                     <input
                         autoFocus
@@ -285,11 +350,8 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                         }}
                         onBlur={(e) => finishTyping(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                finishTyping(e.currentTarget.value);
-                            } else if (e.key === 'Escape') {
-                                cancelTyping();
-                            }
+                            if (e.key === 'Enter') finishTyping(e.currentTarget.value);
+                            else if (e.key === 'Escape') cancelTyping();
                         }}
                     />
                 )}
@@ -306,7 +368,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
 
             {/* Subject Tags */}
             <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, padding: '0.5rem 1rem 0' }}>
                     Materia
                 </div>
                 <div className="subject-tags">

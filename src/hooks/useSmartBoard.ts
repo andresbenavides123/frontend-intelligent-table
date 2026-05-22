@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import type { ReactSketchCanvasRef } from 'react-sketch-canvas';
+import type { ReactSketchCanvasRef, CanvasPath } from 'react-sketch-canvas';
 
 export const useSmartBoard = (
     initialSubject: string = 'Matemáticas',
-    onStrokeAdded?: (path: any, isEraser: boolean) => void,
+    onStrokeAdded?: (path: CanvasPath, isEraser: boolean) => void,
     onCleared?: () => void
 ) => {
     const canvasRef = useRef<ReactSketchCanvasRef>(null);
@@ -18,12 +18,10 @@ export const useSmartBoard = (
     const effectiveColor = isEraser ? '#ffffff' : strokeColor;
     const effectiveStrokeWidth = isEraser ? 24 : strokeWidth;
 
-    const handleStroke = useCallback((path: any, isEraserPath: boolean) => {
+    const handleStroke = useCallback((path: CanvasPath, isEraserPath: boolean) => {
         setHasContent(true);
         setCanUndo(true);
-        if (onStrokeAdded) {
-            onStrokeAdded(path, isEraserPath);
-        }
+        onStrokeAdded?.(path, isEraserPath);
     }, [onStrokeAdded]);
 
     const handleUndo = useCallback(() => {
@@ -40,13 +38,11 @@ export const useSmartBoard = (
         setHasContent(false);
         setCanUndo(false);
         setCanRedo(false);
-        if (onCleared) {
-            onCleared();
-        }
+        onCleared?.();
     }, [onCleared]);
 
     const toggleEraser = useCallback(() => {
-        setIsEraser((prev) => !prev);
+        setIsEraser(prev => !prev);
     }, []);
 
     const setDrawingColor = useCallback((color: string) => {
@@ -77,6 +73,6 @@ export const useSmartBoard = (
         handleClear,
         toggleEraser,
         setDrawingColor,
-        setDrawingWidth
+        setDrawingWidth,
     };
 };
