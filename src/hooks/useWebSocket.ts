@@ -16,6 +16,12 @@ function resolveWsUrl(): string {
     if (import.meta.env.DEV) {
         return 'http://localhost:8080/ws-board';
     }
+    const apiUrl = import.meta.env.VITE_API_URL;
+    if (apiUrl) {
+        // Strip trailing slash if present
+        const sanitizedUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+        return `${sanitizedUrl}/ws-board`;
+    }
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     return `${protocol}//${window.location.host}/ws-board`;
 }

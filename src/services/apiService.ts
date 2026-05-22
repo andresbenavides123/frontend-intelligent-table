@@ -1,8 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import type { ExerciseRequest, ExerciseResponse } from '../types/board.types';
 
-// Use relative URL so requests go through the Vite dev proxy → no CORS issues
-const API_BASE = '/api/v1';
+// Use base URL from environment variable in production, fallback to relative for local proxy
+const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1';
 const EXERCISES_URL = `${API_BASE}/exercises`;
 
 /**
