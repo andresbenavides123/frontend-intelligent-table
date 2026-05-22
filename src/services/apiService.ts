@@ -6,13 +6,23 @@ const API_BASE = '/api/v1';
 const EXERCISES_URL = `${API_BASE}/exercises`;
 
 /**
+ * Requests a JWT session token from the public auth endpoint.
+ * Must be called once after the user joins (with their name and roomId).
+ */
+export const getToken = async (roomId: string, name: string): Promise<string> => {
+    const response = await axios.post<{ token: string }>(`${API_BASE}/auth/token`, { roomId, name });
+    return response.data.token;
+};
+
+/**
  * Sends the board image and subject to the backend for AI analysis.
  */
-export const analyzeBoard = async (data: ExerciseRequest): Promise<ExerciseResponse> => {
+export const analyzeBoard = async (data: ExerciseRequest, token: string): Promise<ExerciseResponse> => {
     try {
         const response = await axios.post<ExerciseResponse>(`${EXERCISES_URL}/analyze`, data, {
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
             timeout: 60_000, // 60 s – AI analysis can be slow
         });
@@ -31,7 +41,7 @@ export const analyzeBoard = async (data: ExerciseRequest): Promise<ExerciseRespo
             console.error(`[apiService] Error ${status} from backend:`, serverMsg);
 
             if (status === 429) {
-                throw new Error('Cuota de Gemini AI agotada. Intenta de nuevo en unos minutos.');
+                throw new Error('Cuota de Groq AI agotada. Intenta de nuevo en unos minutos.');
             }
             if (status === 503 || status === 502) {
                 throw new Error('El backend no está disponible. Verifica que Spring Boot esté corriendo en el puerto 8080.');
@@ -47,6 +57,7 @@ export const analyzeBoard = async (data: ExerciseRequest): Promise<ExerciseRespo
         }
     }
 };
+
 
 /**
  * Lightweight health-check: hits the backend and returns true if reachable.
