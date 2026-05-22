@@ -15,6 +15,7 @@ export interface SmartBoardProps {
     onNewAnalysis: () => void;
     onSubjectChange: (subject: string) => void;
     isLoading: boolean;
+    token: string | null;
 }
 
 export interface FeedbackPanelProps {
@@ -55,7 +56,7 @@ export interface BoardElementDto {
 }
 
 export interface BoardSyncMessageDto {
-    action: 'add' | 'update' | 'delete' | 'clear' | 'feedback';
+    action: 'add' | 'update' | 'delete' | 'clear' | 'feedback' | 'init';
     roomId: string;
     senderId: string;
     element?: BoardElementDto;

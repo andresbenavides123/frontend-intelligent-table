@@ -10,6 +10,7 @@ export interface MediaControlsProps {
     onToggleVideo: () => void;
     onToggleAudio: () => void;
     onToggleScreenShare: () => void;
+    onEndCall?: () => void;
 }
 
 export interface Participant {

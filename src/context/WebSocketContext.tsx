@@ -5,8 +5,8 @@ type WebSocketContextType = ReturnType<typeof useWebSocket> | null;
 
 const WebSocketContext = createContext<WebSocketContextType>(null);
 
-export const WebSocketProvider: React.FC<{ roomId: string | null; children: React.ReactNode }> = ({ roomId, children }) => {
-    const ws = useWebSocket(roomId);
+export const WebSocketProvider: React.FC<{ roomId: string | null; token: string | null; children: React.ReactNode }> = ({ roomId, token, children }) => {
+    const ws = useWebSocket(roomId, token);
     
     return (
         <WebSocketContext.Provider value={ws}>

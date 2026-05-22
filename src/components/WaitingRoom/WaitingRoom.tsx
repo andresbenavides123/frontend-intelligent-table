@@ -9,6 +9,7 @@ interface WaitingRoomProps {
     toggleVideo: () => void;
     toggleAudio: () => void;
     error: string | null;
+    initialName?: string;
     onJoin: (name: string) => void;
 }
 
@@ -20,14 +21,18 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
     toggleVideo,
     toggleAudio,
     error,
-    onJoin
+    initialName = '',
+    onJoin,
 }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const [name, setName] = useState('');
+    const [name, setName] = useState(initialName);
+
+    useEffect(() => {
+        if (initialName) setName(initialName);
+    }, [initialName]);
 
     useEffect(() => {
         if (videoRef.current && stream) {
-            // Check if the stream is already attached to prevent flicker
             if (videoRef.current.srcObject !== stream) {
                 videoRef.current.srcObject = stream;
             }
@@ -35,17 +40,15 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
     }, [stream]);
 
     const handleJoinClick = () => {
-        if (name.trim()) {
-            onJoin(name.trim());
-        }
+        if (name.trim()) onJoin(name.trim());
     };
 
     return (
         <div className="waiting-room-container">
             <div className="waiting-room-card">
                 <div className="waiting-room-header">
-                    <h2>Ready to join?</h2>
-                    <p>Room ID: <strong>{roomId || 'Loading...'}</strong></p>
+                    <h2>¿Listo para unirte?</h2>
+                    <p>Sala: <strong>{roomId ?? 'Cargando...'}</strong></p>
                 </div>
 
                 <div className="preview-container">
@@ -54,27 +57,29 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                             ref={videoRef}
                             autoPlay
                             playsInline
-                            muted // Always mute local preview
+                            muted
                             className="preview-video"
                         />
                     ) : (
                         <div className="preview-fallback">
-                            <span className="camera-off-icon">📷 Camera Off</span>
+                            <span className="camera-off-icon">📷 Cámara apagada</span>
                         </div>
                     )}
-                    
+
                     <div className="preview-controls">
-                        <button 
+                        <button
                             className={`control-btn ${isAudioEnabled ? 'on' : 'off'}`}
                             onClick={toggleAudio}
-                            title={isAudioEnabled ? "Turn off microphone" : "Turn on microphone"}
+                            title={isAudioEnabled ? 'Apagar micrófono' : 'Encender micrófono'}
+                            aria-label={isAudioEnabled ? 'Apagar micrófono' : 'Encender micrófono'}
                         >
                             {isAudioEnabled ? '🎤' : '🔇'}
                         </button>
-                        <button 
+                        <button
                             className={`control-btn ${isVideoEnabled ? 'on' : 'off'}`}
                             onClick={toggleVideo}
-                            title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
+                            title={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
+                            aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
                         >
                             {isVideoEnabled ? '📹' : '📷'}
                         </button>
@@ -82,27 +87,29 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                 </div>
 
                 {error && (
-                    <div className="error-message">
+                    <div className="error-message" role="alert">
                         {error}
                     </div>
                 )}
 
                 <div className="join-form">
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         className="name-input"
-                        placeholder="What's your name?"
+                        placeholder="¿Cuál es tu nombre?"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleJoinClick()}
                         maxLength={30}
+                        aria-label="Tu nombre"
                     />
-                    <button 
+                    <button
                         className="join-btn"
                         onClick={handleJoinClick}
                         disabled={!name.trim() || !roomId}
+                        aria-label="Unirse a la sala"
                     >
-                        Join Room
+                        Unirse a la sala
                     </button>
                 </div>
             </div>
