@@ -3,22 +3,44 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { BoardSyncMessageDto, WebRtcMessageDto } from '../types/board.types';
 
-const WS_URL = 'http://localhost:8080/ws-board';
 
-export const useWebSocket = (roomId: string | null) => {
+/**
+ * Resolves the WebSocket endpoint URL.
+ * - In dev  → uses VITE_WS_URL env var, or falls back to localhost:8080
+ * - In prod → uses the same host/protocol as the page (supports wss://)
+ */
+function resolveWsUrl(): string {
+    if (import.meta.env.VITE_WS_URL) {
+        return import.meta.env.VITE_WS_URL as string;
+    }
+    if (import.meta.env.DEV) {
+        return 'http://localhost:8080/ws-board';
+    }
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    return `${protocol}//${window.location.host}/ws-board`;
+}
+
+const WS_URL = resolveWsUrl();
+
+export const useWebSocket = (roomId: string | null, token: string | null) => {
     const [isConnected, setIsConnected] = useState(false);
     const clientRef = useRef<Client | null>(null);
     const [senderId] = useState(() => Math.random().toString(36).substring(2, 10));
 
     // Listeners for incoming messages
-    const boardListenersRef = useRef<Set<(msg: BoardSyncMessageDto) => void>>(new Set());
-    const rtcListenersRef = useRef<Set<(msg: WebRtcMessageDto) => void>>(new Set());
+    const boardListenersRef     = useRef<Set<(msg: BoardSyncMessageDto) => void>>(new Set());
+    const rtcListenersRef       = useRef<Set<(msg: WebRtcMessageDto) => void>>(new Set());
+    // Listeners for board history (init event sent only to this client)
+    const boardInitListenersRef = useRef<Set<(msg: BoardSyncMessageDto) => void>>(new Set());
 
     useEffect(() => {
         if (!roomId) return;
 
         const client = new Client({
             webSocketFactory: () => new SockJS(WS_URL),
+            connectHeaders: token ? {
+                Authorization: `Bearer ${token}`
+            } : {},
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
             heartbeatOutgoing: 4000,
@@ -26,11 +48,20 @@ export const useWebSocket = (roomId: string | null) => {
                 setIsConnected(true);
                 console.log(`Connected to WebSocket in room: ${roomId}`);
 
-                // Subscribe to board events
+                // Subscribe to board events (broadcasts to all room participants)
                 client.subscribe(`/topic/room/${roomId}/board`, (message) => {
                     if (message.body) {
                         const parsed: BoardSyncMessageDto = JSON.parse(message.body);
                         boardListenersRef.current.forEach(listener => listener(parsed));
+                    }
+                });
+
+                // Subscribe to personal board-init channel (history only for this client)
+                // Spring routes to /user/{sessionId}/queue/board-init
+                client.subscribe(`/user/queue/board-init`, (message) => {
+                    if (message.body) {
+                        const parsed: BoardSyncMessageDto = JSON.parse(message.body);
+                        boardInitListenersRef.current.forEach(listener => listener(parsed));
                     }
                 });
 
@@ -41,6 +72,14 @@ export const useWebSocket = (roomId: string | null) => {
                         rtcListenersRef.current.forEach(listener => listener(parsed));
                     }
                 });
+
+                // Request board history from server for this room
+                // The server responds on /user/queue/board-init with the persisted elements
+                client.publish({
+                    destination: `/app/room/${roomId}/board/init`,
+                    body: JSON.stringify({ roomId }),
+                });
+                console.log(`Requested board history for room: ${roomId}`);
             },
             onDisconnect: () => {
                 setIsConnected(false);
@@ -60,7 +99,7 @@ export const useWebSocket = (roomId: string | null) => {
             clientRef.current = null;
             setIsConnected(false);
         };
-    }, [roomId]);
+    }, [roomId, token]);
 
     const sendBoardSync = useCallback((message: Omit<BoardSyncMessageDto, 'senderId' | 'roomId'>) => {
         if (clientRef.current?.connected && roomId) {
@@ -102,6 +141,17 @@ export const useWebSocket = (roomId: string | null) => {
         };
     }, []);
 
+    /**
+     * Suscribe a eventos "init" enviados exclusivamente a este cliente
+     * con el historial de la pizarra de la sala al momento de conectarse.
+     */
+    const subscribeInit = useCallback((callback: (msg: BoardSyncMessageDto) => void) => {
+        boardInitListenersRef.current.add(callback);
+        return () => {
+            boardInitListenersRef.current.delete(callback);
+        };
+    }, []);
+
     return {
         isConnected,
         senderId,
@@ -109,5 +159,6 @@ export const useWebSocket = (roomId: string | null) => {
         sendSignaling,
         subscribeBoard,
         subscribeRtc,
+        subscribeInit,
     };
 };
