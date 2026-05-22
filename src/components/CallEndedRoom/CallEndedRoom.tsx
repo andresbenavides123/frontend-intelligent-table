@@ -4,9 +4,10 @@ import './CallEndedRoom.css';
 interface CallEndedRoomProps {
     onRejoin: () => void;
     onGoHome: () => void;
+    hasReturnUrl?: boolean;
 }
 
-export const CallEndedRoom: React.FC<CallEndedRoomProps> = ({ onRejoin, onGoHome }) => {
+export const CallEndedRoom: React.FC<CallEndedRoomProps> = ({ onRejoin, onGoHome, hasReturnUrl }) => {
     return (
         <div className="call-ended-container">
             <div className="call-ended-card">
@@ -18,7 +19,7 @@ export const CallEndedRoom: React.FC<CallEndedRoomProps> = ({ onRejoin, onGoHome
                         Volver a unirse
                     </button>
                     <button className="btn-secondary" onClick={onGoHome}>
-                        Ir al inicio (Nueva Sala)
+                        {hasReturnUrl ? 'Volver a la aplicación principal' : 'Ir al inicio (Nueva Sala)'}
                     </button>
                 </div>
             </div>

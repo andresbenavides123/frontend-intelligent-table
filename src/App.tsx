@@ -35,6 +35,8 @@ function App() {
     const [userName, setUserName] = useState<string>('');
     const { toast, showToast } = useToast();
 
+    const [returnUrl, setReturnUrl] = useState<string | null>(null);
+
     // Live clock — evaluates every second (not just on first render)
     const [currentTime, setCurrentTime] = useState(() => new Date());
     useEffect(() => {
@@ -46,10 +48,18 @@ function App() {
         const params = new URLSearchParams(window.location.search);
         let room = params.get('room');
         const tokenParam = params.get('token');
+        const returnUrlParam = params.get('returnUrl');
+
+        if (returnUrlParam) {
+            setReturnUrl(returnUrlParam);
+        }
 
         if (!room) {
             room = generateRoomId();
-            window.history.replaceState({}, '', `?room=${room}`);
+            // Preserve returnUrl in the URL when redirecting to a new room
+            const url = new URL(window.location.href);
+            url.searchParams.set('room', room);
+            window.history.replaceState({}, '', url.toString());
         }
         setRoomId(room);
 
@@ -116,7 +126,12 @@ function App() {
                 onRejoin={() => {
                     setCallEnded(false);
                 }}
+                hasReturnUrl={!!returnUrl}
                 onGoHome={() => {
+                    if (returnUrl) {
+                        window.location.href = returnUrl;
+                        return;
+                    }
                     // Generate new room
                     const newRoom = generateRoomId();
                     window.history.pushState({}, '', `?room=${newRoom}`);
