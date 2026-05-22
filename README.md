@@ -1,73 +1,96 @@
-# React + TypeScript + Vite
+# 🚀 Frontend Intelligent Table
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<p align="center">
+  Frontend moderno desarrollado para la plataforma <strong>Intelligent Table</strong>.
+</p>
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📋 Descripción del Proyecto
 
-## React Compiler
+Este proyecto corresponde al frontend de la plataforma Intelligent Table, una aplicación web enfocada en la gestión visual e inteligente de información mediante una interfaz moderna, dinámica y responsive.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+El sistema permite la interacción con servicios backend mediante consumo de APIs REST y ofrece una experiencia amigable para el usuario final.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🛠️ Tecnologías Utilizadas
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- ⚛️ React
+- 📘 TypeScript
+- 🎨 CSS
+- ⚡ Vite
+- 🌐 HTML5
+- 🔗 REST API
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 📂 Estructura del Proyecto
+
+```bash
+src/
+ ├── components/
+ ├── pages/
+ ├── services/
+ ├── context/
+ ├── assets/
+ └── App.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## ✨ Funcionalidades
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+✅ Interfaz moderna y responsive  
+✅ Consumo de APIs REST  
+✅ Gestión visual de datos  
+✅ Navegación dinámica  
+✅ Componentes reutilizables  
+✅ Manejo de estados y contexto  
+
+---
+
+## ⚙️ Instalación y Ejecución
+
+### 1️⃣ Clonar el repositorio
+
+```bash
+git clone https://github.com/andresbenavides123/frontend-intelligent-table.git
 ```
+
+### 2️⃣ Entrar a la carpeta
+
+```bash
+cd frontend-intelligent-table
+```
+
+### 3️⃣ Instalar dependencias
+
+```bash
+npm install
+```
+
+### 4️⃣ Ejecutar el proyecto
+
+```bash
+npm run dev
+```
+
+---
+
+## 👩‍💻 Colaboradores
+
+- Gabriela50
+- andresbenavides123
+
+---
+
+## 📧 Contacto
+
+📩 Gabrielabenitez658@gmail.com
+
+---
+
+## 📄 Licencia
+
+Proyecto académico y educativo.
