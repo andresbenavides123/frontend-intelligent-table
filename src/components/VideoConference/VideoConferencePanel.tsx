@@ -54,6 +54,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
         const el = remoteVideoRef.current;
         if (el && remoteStream) {
             el.srcObject = remoteStream;
+            el.play().catch(e => console.warn('[VideoConference] Auto-play prevented:', e));
         }
     }, [remoteStream]);
 
