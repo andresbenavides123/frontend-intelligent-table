@@ -110,17 +110,17 @@ function classifyLine(line: string): ParsedLine {
     }
 
     // Positive signals
-    if (/✓||correcto|bien|excelente|perfecto|muy bien|acertado|bravo|felicit|logr|éxito|correc/i.test(clean)) {
+    if (/✓|correcto|bien|excelente|perfecto|muy bien|acertado|bravo|felicit|logr|éxito|correc/i.test(clean)) {
         return { type: 'correct', text: clean, raw: clean };
     }
 
     // Error / correction signals
-    if (/✗||error|incorrecto|debería|debe ser|falta|recuerda|incompleto|mal|equivoc|corrig|revisa|ojo[,!:\s]|cuidado|atención/i.test(clean)) {
+    if (/✗|error|incorrecto|debería|debe ser|falta|recuerda|incompleto|mal|equivoc|corrig|revisa|ojo[,!:\s]|cuidado|atención/i.test(clean)) {
         return { type: 'error', text: clean, raw: clean };
     }
 
     // Tip / advice signals
-    if (/|tip[:\s]|nota[:\s]|consejo[:\s]|sugerencia|recuerda que|ten en cuenta|important[e:]|considera/i.test(clean)) {
+    if (/tip[:\s]|nota[:\s]|consejo[:\s]|sugerencia|recuerda que|ten en cuenta|important[e:]|considera/i.test(clean)) {
         return { type: 'tip', text: clean, raw: clean };
     }
 
