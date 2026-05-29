@@ -1,7 +1,79 @@
 import React, { useState } from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import type { FeedbackPanelProps } from '../types/board.types';
 import { THINKING_STEPS } from '../constants/board.constants';
 import { useAIFeedback } from '../hooks/useAIFeedback';
+
+// ─────────────────────────────────────────────────────────────
+// KaTeX renderer — safely converts LaTeX expressions to HTML
+// ─────────────────────────────────────────────────────────────
+function renderLatexSegment(expr: string, displayMode: boolean): string {
+    try {
+        return katex.renderToString(expr, {
+            displayMode,
+            throwOnError: false,
+            strict: false,
+            trust: false,
+        });
+    } catch {
+        return expr;
+    }
+}
+
+/**
+ * Splits text into segments: plain text and LaTeX blocks ($$...$$, $...$).
+ * Returns an array of { type: 'text'|'latex-display'|'latex-inline', content }.
+ */
+type Segment = { type: 'text' | 'latex-display' | 'latex-inline'; content: string };
+
+function parseLatexSegments(text: string): Segment[] {
+    const segments: Segment[] = [];
+    // Match $$...$$ first (display), then $...$ (inline)
+    const pattern = /(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            segments.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+        }
+        const raw = match[0];
+        if (raw.startsWith('$$')) {
+            segments.push({ type: 'latex-display', content: raw.slice(2, -2) });
+        } else {
+            segments.push({ type: 'latex-inline', content: raw.slice(1, -1) });
+        }
+        lastIndex = pattern.lastIndex;
+    }
+    if (lastIndex < text.length) {
+        segments.push({ type: 'text', content: text.slice(lastIndex) });
+    }
+    return segments;
+}
+
+/** Renders a string that may contain $...$ or $$...$$ LaTeX to React elements */
+const LatexRenderer: React.FC<{ text: string; className?: string }> = ({ text, className }) => {
+    const segments = parseLatexSegments(text);
+    if (segments.every(s => s.type === 'text')) {
+        return <span className={className}>{text}</span>;
+    }
+    return (
+        <span className={className}>
+            {segments.map((seg, i) => {
+                if (seg.type === 'text') return <span key={i}>{seg.content}</span>;
+                const html = renderLatexSegment(seg.content, seg.type === 'latex-display');
+                return (
+                    <span
+                        key={i}
+                        className={seg.type === 'latex-display' ? 'katex-display-block' : 'katex-inline-block'}
+                        dangerouslySetInnerHTML={{ __html: html }}
+                    />
+                );
+            })}
+        </span>
+    );
+};
 
 // ─────────────────────────────────────────────────────────────
 // Semantic line classifier — returns a card-type for each line
@@ -20,6 +92,11 @@ function classifyLine(line: string): ParsedLine {
     // Headings: lines starting with #, or all-caps short phrases, or ending with ':'
     if (/^#{1,3}\s/.test(clean)) {
         return { type: 'heading', text: clean.replace(/^#{1,3}\s/, ''), raw: clean };
+    }
+
+    // LaTeX inline/display blocks → always formula
+    if (/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/.test(clean)) {
+        return { type: 'formula', text: clean, raw: clean };
     }
 
     // Formula / math: contains =, ², ³, √, ∫, ∑, fractions, or code-like content
@@ -110,7 +187,7 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
     if (line.type === 'heading') {
         return (
             <div className="fb-heading" style={{ animationDelay: delay }}>
-                {line.text}
+                <LatexRenderer text={line.text} />
             </div>
         );
     }
@@ -119,7 +196,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
         return (
             <div className="fb-card fb-formula" style={{ animationDelay: delay }}>
                 <span className="fb-card-icon">📐</span>
-                <code className="fb-formula-text">{line.text}</code>
+                <span className="fb-formula-text">
+                    <LatexRenderer text={line.text} />
+                </span>
             </div>
         );
     }
@@ -128,7 +207,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
         return (
             <div className="fb-card fb-step" style={{ animationDelay: delay }}>
                 <span className="fb-step-bullet" />
-                <span className="fb-step-text">{line.text}</span>
+                <span className="fb-step-text">
+                    <LatexRenderer text={line.text} />
+                </span>
             </div>
         );
     }
@@ -137,7 +218,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
         return (
             <div className="fb-card fb-correct" style={{ animationDelay: delay }}>
                 <span className="fb-card-icon">✅</span>
-                <span className="fb-card-text">{line.text.replace(/^[✓✅]\s*/, '')}</span>
+                <span className="fb-card-text">
+                    <LatexRenderer text={line.text.replace(/^[✓✅]\s*/, '')} />
+                </span>
             </div>
         );
     }
@@ -146,7 +229,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
         return (
             <div className="fb-card fb-error" style={{ animationDelay: delay }}>
                 <span className="fb-card-icon">❌</span>
-                <span className="fb-card-text">{line.text.replace(/^[✗❌]\s*/, '')}</span>
+                <span className="fb-card-text">
+                    <LatexRenderer text={line.text.replace(/^[✗❌]\s*/, '')} />
+                </span>
             </div>
         );
     }
@@ -155,7 +240,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
         return (
             <div className="fb-card fb-tip" style={{ animationDelay: delay }}>
                 <span className="fb-card-icon">💡</span>
-                <span className="fb-card-text">{line.text}</span>
+                <span className="fb-card-text">
+                    <LatexRenderer text={line.text} />
+                </span>
             </div>
         );
     }
@@ -163,7 +250,7 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
     // neutral
     return (
         <p className="fb-neutral" style={{ animationDelay: delay }}>
-            {line.text}
+            <LatexRenderer text={line.text} />
         </p>
     );
 };

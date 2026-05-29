@@ -1089,3 +1089,174 @@ body {
 .media-btn.end-call:hover {
   background: #d93025;
 }
+
+/* ============================================
+   DRAGGABLE BOARD ELEMENTS
+   ============================================ */
+.draggable-element {
+  cursor: grab;
+  transition: box-shadow 0.15s ease, outline 0.15s ease;
+  border-radius: 4px;
+  outline: 1.5px dashed transparent;
+}
+
+.draggable-element:hover {
+  outline-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.15);
+}
+
+.draggable-element:active {
+  cursor: grabbing;
+  outline-color: rgba(37, 99, 235, 0.8);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+}
+
+.draggable-text-content {
+  cursor: inherit;
+  display: block;
+  padding: 2px 4px;
+}
+
+/* Resize handle — bottom-right corner */
+.resize-handle {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  background: #2563eb;
+  border: 2px solid #fff;
+  border-radius: 3px;
+  cursor: se-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 11;
+}
+
+.draggable-element:hover .resize-handle {
+  opacity: 1;
+}
+
+/* ============================================
+   CHALK / DARK BOARD MODE
+   ============================================ */
+
+/* Canvas dark background */
+.canvas-wrapper.chalk-mode {
+  background: #1a1a2e !important;
+}
+
+/* Chalk mode toolbar styling */
+.toolbar-chalk {
+  background: #252540 !important;
+  border-bottom-color: #3a3a5c !important;
+}
+
+.toolbar-chalk .tool-btn {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.toolbar-chalk .tool-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.toolbar-chalk .tool-btn.active {
+  background: #4f46e5 !important;
+  color: white;
+}
+
+.toolbar-chalk .stroke-btn:hover,
+.toolbar-chalk .stroke-btn.active {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.toolbar-chalk .toolbar-divider {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Chalk mode toggle button */
+.chalk-mode-btn {
+  font-size: 1rem !important;
+  min-width: 36px !important;
+  width: 36px !important;
+  transition: all 0.2s ease !important;
+}
+
+.chalk-mode-btn.active {
+  background: #4f46e5 !important;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+/* Canvas placeholder text in chalk mode */
+.chalk-placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Chalk mode badge in panel header */
+.chalk-mode-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: var(--radius-full);
+  padding: 0.1rem 0.5rem;
+  margin-left: 0.5rem;
+}
+
+/* ============================================
+   KATEX OVERRIDES — inline & display blocks
+   ============================================ */
+
+/* Inline math: $...$  */
+.katex-inline-block {
+  display: inline;
+  vertical-align: middle;
+}
+
+.katex-inline-block .katex {
+  font-size: 1em;
+}
+
+/* Display math: $$...$$ */
+.katex-display-block {
+  display: block;
+  text-align: center;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+}
+
+.katex-display-block .katex {
+  font-size: 1.1em;
+}
+
+/* Prevent KaTeX from overflowing cards */
+.fb-formula-text .katex,
+.fb-card .katex {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Ensure KaTeX display mode integrates nicely in formula cards */
+.fb-formula .katex-display {
+  margin: 0;
+}
+
+/* ============================================
+   MISSING TIME / MEETING ID STYLES
+   ============================================ */
+.time-display {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+  font-variant-numeric: tabular-nums;
+}
+
+.meeting-id {
+  font-size: 0.85rem;
+  color: #9aa0a6;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+

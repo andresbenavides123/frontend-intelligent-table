@@ -6,6 +6,8 @@ export interface BoardElement {
     type: 'text' | 'image';
     x: number;
     y: number;
+    width?: number;
+    height?: number;
     content: string; // text content or base64 image data
 }
 
@@ -43,6 +45,21 @@ export const useBoardElements = (
         addElement({ id, type: 'text', x, y, content: text }, isRemote);
     }, [addElement]);
 
+    /**
+     * Updates position and/or size of an existing element (used by drag-and-drop / resize).
+     * @param isRemote - if true, skip broadcasting (already came from WS)
+     */
+    const updateElement = useCallback((
+        id: string,
+        patch: Partial<Pick<BoardElement, 'x' | 'y' | 'width' | 'height'>>,
+        isRemote = false
+    ) => {
+        setElements(prev =>
+            prev.map(el => el.id === id ? { ...el, ...patch } : el)
+        );
+        return isRemote; // callers can use the return to decide broadcasting
+    }, []);
+
     const clearElements = useCallback((isRemote = false) => {
         setElements([]);
         if (!isRemote && onCleared) {
@@ -70,6 +87,7 @@ export const useBoardElements = (
         tempTextPos,
         addImage,
         addText,
+        updateElement,
         startTyping,
         finishTyping,
         cancelTyping,

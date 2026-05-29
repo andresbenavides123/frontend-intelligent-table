@@ -63,6 +63,12 @@ export interface BoardSyncMessageDto {
     payload?: string;
 }
 
+/** Extended element with optional display size (for drag-and-drop resize) */
+export interface BoardElementWithSize extends BoardElementDto {
+    width?: number;
+    height?: number;
+}
+
 export interface WebRtcMessageDto {
     type: 'join' | 'leave' | 'offer' | 'answer' | 'ice-candidate';
     roomId: string;

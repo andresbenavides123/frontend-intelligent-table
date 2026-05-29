@@ -7,8 +7,12 @@ import { SUBJECTS } from '../constants/board.constants';
 import { useSmartBoard } from '../hooks/useSmartBoard';
 import { useBoardElements } from '../hooks/useBoardElements';
 import { BoardToolbar } from './BoardToolbar';
+import { DraggableElement } from './DraggableElement';
 import html2canvas from 'html2canvas';
 import { useWebSocketContext } from '../context/WebSocketContext';
+
+/** Throttle delay (ms) for board-sync WS messages to avoid flooding on rapid strokes */
+const BOARD_SYNC_DEBOUNCE_MS = 60;
 
 export const SmartBoard: React.FC<SmartBoardProps> = ({
     onFeedbackReceived,
@@ -20,21 +24,31 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
 }) => {
     const ws = useWebSocketContext();
 
-    // ── Sync callbacks (passed to hooks so they broadcast WITHOUT triggering
-    //    an extra WS send from clearCanvas — see Fix #2 below)
+    // Debounce timer so rapid strokes don't flood the WS channel and freeze the UI
+    const strokeDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingStrokeRef = React.useRef<CanvasPath | null>(null);
+
+    // ── Sync callbacks ───────────────────────────────────────────────────────
     const handleStrokeAdded = React.useCallback((path: CanvasPath) => {
-        ws.sendBoardSync({
-            action: 'add',
-            element: {
-                id: Date.now().toString(),
-                type: 'path',
-                x: 0,
-                y: 0,
-                content: JSON.stringify(path),
-                color: path.strokeColor,
-                size: path.strokeWidth,
-            },
-        });
+        pendingStrokeRef.current = path;
+        if (strokeDebounceRef.current) clearTimeout(strokeDebounceRef.current);
+        strokeDebounceRef.current = setTimeout(() => {
+            const pendingPath = pendingStrokeRef.current;
+            if (!pendingPath) return;
+            pendingStrokeRef.current = null;
+            ws.sendBoardSync({
+                action: 'add',
+                element: {
+                    id: Date.now().toString(),
+                    type: 'path',
+                    x: 0,
+                    y: 0,
+                    content: JSON.stringify(pendingPath),
+                    color: pendingPath.strokeColor,
+                    size: pendingPath.strokeWidth,
+                },
+            });
+        }, BOARD_SYNC_DEBOUNCE_MS);
     }, [ws]);
 
     const {
@@ -47,6 +61,8 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         hasContent,
         canUndo,
         canRedo,
+        chalkMode,
+        canvasBackground,
         effectiveColor,
         effectiveStrokeWidth,
         handleStroke,
@@ -56,10 +72,10 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         toggleEraser,
         setDrawingColor,
         setDrawingWidth,
+        toggleChalkMode,
     } = useSmartBoard(
         SUBJECTS[0].value,
         handleStrokeAdded,
-        // ← No `onCleared` here. clearCanvas (below) sends the WS event once.
     );
 
     const handleElementAdded = React.useCallback((element: BoardElementDto) => {
@@ -72,18 +88,23 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         tempTextPos,
         addImage,
         addText,
+        updateElement,
         startTyping,
         finishTyping,
         cancelTyping,
         clearElements,
-    } = useBoardElements(
-        handleElementAdded,
-        // ← No `onCleared` here either.
-    );
+    } = useBoardElements(handleElementAdded);
 
     const boardContainerRef = React.useRef<HTMLDivElement>(null);
 
-    // ── Receive remote board events
+    // Clean up debounce timer on unmount
+    React.useEffect(() => {
+        return () => {
+            if (strokeDebounceRef.current) clearTimeout(strokeDebounceRef.current);
+        };
+    }, []);
+
+    // ── Receive remote board events ──────────────────────────────────────────
     React.useEffect(() => {
         return ws.subscribeBoard(async (msg) => {
             if (msg.senderId === ws.senderId) return;
@@ -99,6 +120,14 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 } catch (e) {
                     console.error('[SmartBoard] Failed to parse remote feedback payload', e);
                 }
+            } else if (msg.action === 'update' && msg.element) {
+                // Remote drag/resize — update local element position/size
+                updateElement(msg.element.id, {
+                    x: msg.element.x,
+                    y: msg.element.y,
+                    width: (msg.element as any).width,
+                    height: (msg.element as any).height,
+                }, true);
             } else if (msg.action === 'add' && msg.element) {
                 if (msg.element.type === 'path') {
                     try {
@@ -115,13 +144,12 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 }
             }
         });
-    }, [ws, clearElements, addText, addImage, canvasRef, onSubjectChange, onFeedbackReceived]);
+    }, [ws, clearElements, addText, addImage, updateElement, canvasRef, onSubjectChange, onFeedbackReceived]);
 
     // ── Restore board state from server history (fires once on (re)connect) ──
     React.useEffect(() => {
         return ws.subscribeInit(async (msg) => {
             if (msg.action !== 'init' || !msg.payload) return;
-
             console.log('[SmartBoard] Restoring board history from server...');
 
             let elements: Array<{
@@ -136,7 +164,6 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 return;
             }
 
-            // Separate paths from overlay elements
             const paths: CanvasPath[] = [];
             for (const el of elements) {
                 if (el.type === 'path') {
@@ -147,36 +174,25 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                         console.warn('[SmartBoard] Skipping unparseable path in history');
                     }
                 } else if (el.type === 'text') {
-                    // isRemote=true to avoid broadcasting back to server
                     addText(el.content, el.x, el.y, true, el.id);
                 } else if (el.type === 'image') {
                     addImage(el.content, el.x, el.y, true, el.id);
                 }
             }
 
-            // Load all paths at once for performance
-            if (paths.length > 0) {
-                await canvasRef.current?.loadPaths(paths);
-            }
-
+            if (paths.length > 0) await canvasRef.current?.loadPaths(paths);
             console.log(`[SmartBoard] Board restored: ${paths.length} paths, ${elements.length - paths.length} overlay elements`);
         });
     }, [ws, addText, addImage, canvasRef]);
 
     /**
      * Clears the board locally AND notifies all peers.
-     *
-     * ⚠️  Previously this sent 3 WS messages because:
-     *       handleClear()  → onCleared() → sendBoardSync  (1st)
-     *       clearElements() → onCleared() → sendBoardSync (2nd)
-     *       handleBoardCleared() explicitly            (3rd)
-     *
-     *     Fixed by NOT wiring onCleared to the hooks and sending once here.
+     * Single broadcast — no duplicate WS messages.
      */
     const clearCanvas = () => {
-        handleClear();         // resets canvas SVG + state (no WS call)
-        clearElements();       // resets overlays state  (no WS call)
-        ws.sendBoardSync({ action: 'clear' }); // ← single broadcast
+        handleClear();
+        clearElements();
+        ws.sendBoardSync({ action: 'clear' });
         onFeedbackReceived('');
     };
 
@@ -184,13 +200,12 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
 
     const handleAnalyze = async () => {
         if (!boardContainerRef.current || !boardHasContent) return;
-
         onLoadingStateChange(true);
         onNewAnalysis();
 
         try {
             const canvas = await html2canvas(boardContainerRef.current, {
-                backgroundColor: '#ffffff',
+                backgroundColor: canvasBackground,
                 useCORS: true,
             });
             const base64Data = canvas.toDataURL('image/png');
@@ -247,6 +262,41 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         }
     };
 
+    // ── Drag & resize handlers → update state + sync over WS ────────────────
+    const handleElementMoved = React.useCallback((id: string, x: number, y: number) => {
+        updateElement(id, { x, y });
+        ws.sendBoardSync({
+            action: 'update',
+            element: {
+                id,
+                type: 'text', // type doesn't matter for update — server just forwards
+                x, y,
+                content: '',
+                color: '',
+                size: 0,
+            },
+        });
+    }, [updateElement, ws]);
+
+    const handleElementResized = React.useCallback((id: string, width: number, height: number) => {
+        updateElement(id, { width, height });
+        ws.sendBoardSync({
+            action: 'update',
+            element: {
+                id,
+                type: 'text',
+                x: elements.find(el => el.id === id)?.x ?? 0,
+                y: elements.find(el => el.id === id)?.y ?? 0,
+                content: '',
+                color: '',
+                size: 0,
+                // @ts-ignore — extra fields forwarded as-is
+                width,
+                height,
+            },
+        });
+    }, [updateElement, ws, elements]);
+
     return (
         <div className="panel board-panel" onPaste={handlePaste}>
             {/* Panel Header */}
@@ -254,6 +304,9 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 <div className="panel-title">
                     <span className="panel-title-icon">✏️</span>
                     Pizarra Interactiva
+                    {chalkMode && (
+                        <span className="chalk-mode-badge">🌙 Modo Pizarra</span>
+                    )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <span style={{
@@ -281,53 +334,40 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 isEraser={isEraser}
                 canUndo={canUndo}
                 canRedo={canRedo}
+                chalkMode={chalkMode}
                 onColorChange={setDrawingColor}
                 onWidthChange={setDrawingWidth}
                 onToggleEraser={toggleEraser}
+                onToggleChalkMode={toggleChalkMode}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
             />
 
             {/* Canvas */}
             <div
-                className="canvas-wrapper"
+                className={`canvas-wrapper${chalkMode ? ' chalk-mode' : ''}`}
                 ref={boardContainerRef}
                 onDoubleClick={handleDoubleClick}
-                style={{ position: 'relative' }}
+                style={{ position: 'relative', background: canvasBackground }}
             >
                 {!hasContent && elements.length === 0 && (
                     <div className="canvas-placeholder">
                         <div className="canvas-placeholder-icon">✍️</div>
-                        <div className="canvas-placeholder-text">
+                        <div className={`canvas-placeholder-text${chalkMode ? ' chalk-placeholder' : ''}`}>
                             Escribe, dibuja o pega una imagen (Ctrl+V)
                         </div>
                     </div>
                 )}
 
-                {/* Overlay elements (text / images) */}
+                {/* Overlay elements — now draggable & resizable */}
                 {elements.map((el) => (
-                    <div
+                    <DraggableElement
                         key={el.id}
-                        style={{
-                            position: 'absolute',
-                            left: el.x,
-                            top: el.y,
-                            zIndex: 10,
-                            pointerEvents: 'none',
-                        }}
-                    >
-                        {el.type === 'text' ? (
-                            <span style={{ fontSize: '1.2rem', color: strokeColor, fontFamily: 'var(--font-main)', fontWeight: 600 }}>
-                                {el.content}
-                            </span>
-                        ) : (
-                            <img
-                                src={el.content}
-                                alt="Imagen pegada"
-                                style={{ maxWidth: '300px', maxHeight: '300px', borderRadius: '4px', border: '2px solid var(--accent-primary)' }}
-                            />
-                        )}
-                    </div>
+                        element={el}
+                        strokeColor={strokeColor}
+                        onMoved={handleElementMoved}
+                        onResized={handleElementResized}
+                    />
                 ))}
 
                 {/* Inline text input */}
