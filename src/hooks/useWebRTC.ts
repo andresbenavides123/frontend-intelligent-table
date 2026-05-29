@@ -224,6 +224,21 @@ export const useWebRTC = (
             try {
                 switch (msg.type) {
                     case 'join': {
+                        // Bloquea a un tercer participante si ya estamos conectados con alguien
+                        if (
+                            pcRef.current && 
+                            (pcRef.current.connectionState === 'connected' || pcRef.current.connectionState === 'connecting') && 
+                            remoteIdRef.current && 
+                            remoteIdRef.current !== msg.senderId
+                        ) {
+                            console.warn('[WebRTC] Rejecting 3rd peer:', msg.senderId);
+                            ws.sendSignaling({
+                                type: 'room-full',
+                                targetId: msg.senderId,
+                            });
+                            break;
+                        }
+
                         console.log('[WebRTC] "join" from', msg.senderId, '— creating offer');
                         const pc = createPeerConnection(msg.senderId);
                         const offer = await pc.createOffer({
@@ -236,6 +251,12 @@ export const useWebRTC = (
                             targetId: msg.senderId,
                             payload: JSON.stringify(offer),
                         });
+                        break;
+                    }
+                    
+                    case 'room-full': {
+                        alert("⚠️ Auditoría de Sistema: La sala ya cuenta con el máximo de 2 participantes permitidos.");
+                        window.location.href = '/'; // kick back to home
                         break;
                     }
 

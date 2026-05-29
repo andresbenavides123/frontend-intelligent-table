@@ -245,8 +245,17 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
             if (items[i].type.startsWith('image/')) {
+                const imageCount = elements.filter(el => el.type === 'image').length;
+                if (imageCount >= 2) {
+                    alert("⚠️ Auditoría de Sistema: Límite máximo de 2 imágenes alcanzado para evitar sobrecarga.");
+                    return;
+                }
                 const blob = items[i].getAsFile();
                 if (blob) {
+                    if (blob.size > 10 * 1024 * 1024) {
+                        alert("⚠️ Auditoría de Sistema: La imagen supera el tamaño máximo de 10 MB permitido por seguridad.");
+                        return;
+                    }
                     const reader = new FileReader();
                     reader.onload = (event) => {
                         if (event.target?.result) {
@@ -260,6 +269,10 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
     };
 
     const handleDoubleClick = (e: React.MouseEvent) => {
+        if (elements.length >= 50) {
+            alert("⚠️ Auditoría de Sistema: Límite máximo de 50 elementos en pantalla alcanzado. Limpia la pizarra.");
+            return;
+        }
         const rect = boardContainerRef.current?.getBoundingClientRect();
         if (rect) {
             startTyping(e.clientX - rect.left, e.clientY - rect.top);
@@ -378,6 +391,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                 {isTyping && (
                     <input
                         autoFocus
+                        maxLength={200}
                         style={{
                             position: 'absolute',
                             left: tempTextPos.x,

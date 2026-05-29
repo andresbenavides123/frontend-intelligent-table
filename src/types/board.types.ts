@@ -70,7 +70,7 @@ export interface BoardElementWithSize extends BoardElementDto {
 }
 
 export interface WebRtcMessageDto {
-    type: 'join' | 'leave' | 'offer' | 'answer' | 'ice-candidate';
+    type: 'join' | 'leave' | 'offer' | 'answer' | 'ice-candidate' | 'room-full';
     roomId: string;
     senderId: string;
     targetId?: string;

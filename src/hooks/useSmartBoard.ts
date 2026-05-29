@@ -48,9 +48,22 @@ export const useSmartBoard = (
     const effectiveStrokeWidth = isEraser ? 24 : strokeWidth;
 
     const handleStroke = useCallback((path: CanvasPath, isEraserPath: boolean) => {
-        setHasContent(true);
-        setCanUndo(true);
-        onStrokeAdded?.(path, isEraserPath);
+        canvasRef.current?.exportPaths().then(paths => {
+            if (paths.length > 500) {
+                alert("⚠️ Auditoría de Sistema: Has alcanzado el límite de 500 trazos por seguridad. Se deshará el último trazo.");
+                canvasRef.current?.undo();
+                return;
+            }
+            setHasContent(true);
+            setCanUndo(true);
+            onStrokeAdded?.(path, isEraserPath);
+        }).catch(err => {
+            console.error("[SmartBoard] Failed to export paths", err);
+            // Fallback in case of error, still allow basic function
+            setHasContent(true);
+            setCanUndo(true);
+            onStrokeAdded?.(path, isEraserPath);
+        });
     }, [onStrokeAdded]);
 
     const handleUndo = useCallback(() => {
