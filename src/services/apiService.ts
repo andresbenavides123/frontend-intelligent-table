@@ -2,7 +2,9 @@ import axios, { AxiosError } from 'axios';
 import type { ExerciseRequest, ExerciseResponse } from '../types/board.types';
 
 // Use base URL from environment variable in production, fallback to relative for local proxy
-const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1';
+const rawApiUrl = import.meta.env.VITE_API_URL || '';
+const sanitizedApiUrl = rawApiUrl.endsWith('/') ? rawApiUrl.slice(0, -1) : rawApiUrl;
+const API_BASE = sanitizedApiUrl + '/api/v1';
 const EXERCISES_URL = `${API_BASE}/exercises`;
 
 /**
