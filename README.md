@@ -1,3 +1,6 @@
+# Frontend - Intelligent Table
+Interfaz de usuario interactiva y responsiva para la gestión de mesas inteligentes.
+
 # 🚀 Frontend Intelligent Table
 
 <p align="center">
