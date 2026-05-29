@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import type { BoardSyncMessageDto, WebRtcMessageDto } from '../types/board.types';
@@ -169,7 +169,7 @@ export const useWebSocket = (roomId: string | null, token: string | null) => {
         };
     }, []);
 
-    return {
+    const wsValue = React.useMemo(() => ({
         isConnected,
         senderId,
         sendBoardSync,
@@ -177,5 +177,15 @@ export const useWebSocket = (roomId: string | null, token: string | null) => {
         subscribeBoard,
         subscribeRtc,
         subscribeInit,
-    };
+    }), [
+        isConnected,
+        senderId,
+        sendBoardSync,
+        sendSignaling,
+        subscribeBoard,
+        subscribeRtc,
+        subscribeInit
+    ]);
+
+    return wsValue;
 };

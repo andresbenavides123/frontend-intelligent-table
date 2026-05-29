@@ -86,8 +86,11 @@ export const useWebRTC = (
             pcRef.current.close();
             pcRef.current = null;
         }
-        pendingCandidates.current = [];
-        remoteIdRef.current = targetId;
+        // Only clear pending candidates if we are connecting to a NEW peer
+        if (remoteIdRef.current !== targetId) {
+            pendingCandidates.current = [];
+            remoteIdRef.current = targetId;
+        }
 
         const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
