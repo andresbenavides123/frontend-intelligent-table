@@ -62,7 +62,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                         />
                     ) : (
                         <div className="preview-fallback">
-                            <span className="camera-off-icon">📷 Cámara apagada</span>
+                            <span className="camera-off-icon"> Cámara apagada</span>
                         </div>
                     )}
 
@@ -73,7 +73,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                             title={isAudioEnabled ? 'Apagar micrófono' : 'Encender micrófono'}
                             aria-label={isAudioEnabled ? 'Apagar micrófono' : 'Encender micrófono'}
                         >
-                            {isAudioEnabled ? '🎤' : '🔇'}
+                            {isAudioEnabled ? '' : ''}
                         </button>
                         <button
                             className={`control-btn ${isVideoEnabled ? 'on' : 'off'}`}
@@ -81,7 +81,7 @@ export const WaitingRoom: React.FC<WaitingRoomProps> = ({
                             title={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
                             aria-label={isVideoEnabled ? 'Apagar cámara' : 'Encender cámara'}
                         >
-                            {isVideoEnabled ? '📹' : '📷'}
+                            {isVideoEnabled ? '' : ''}
                         </button>
                     </div>
                 </div>

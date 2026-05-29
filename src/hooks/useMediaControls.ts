@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * Manages camera, microphone and screen-share streams.
  *
- * ⚠️  IMPORTANT: stream / screenStream must NOT be listed as effect deps.
+ *   IMPORTANT: stream / screenStream must NOT be listed as effect deps.
  *     Doing so causes an infinite loop:
  *       initializeMedia() → setStream() → effect re-runs → initializeMedia() → …
  *     Instead we track the live streams via refs for cleanup purposes only.

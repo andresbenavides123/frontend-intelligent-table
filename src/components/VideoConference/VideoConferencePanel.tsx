@@ -62,7 +62,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
         <div className="panel video-panel">
             <div className="panel-header">
                 <div className="panel-title">
-                    <span className="panel-title-icon">👥</span>
+                    <span className="panel-title-icon"></span>
                     Sesión en Vivo
                 </div>
             </div>
@@ -87,7 +87,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
                     )}
                     <div className="video-overlay">
                         <span className="participant-name">Tú</span>
-                        {!isAudioEnabled && <span className="participant-muted">🔇</span>}
+                        {!isAudioEnabled && <span className="participant-muted"></span>}
                     </div>
                 </div>
 
@@ -102,14 +102,14 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
                         />
                     ) : (
                         <div className="video-avatar">
-                            <span className="avatar-initial">⏳</span>
+                            <span className="avatar-initial"></span>
                         </div>
                     )}
                     <div className="video-overlay">
                         <span className="participant-name">
                             {remoteStream ? 'Profesor / Alumno' : 'Esperando participante...'}
                         </span>
-                        {!remoteStream && <span className="participant-muted">🔇</span>}
+                        {!remoteStream && <span className="participant-muted"></span>}
                     </div>
                 </div>
             </div>

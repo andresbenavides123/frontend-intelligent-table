@@ -111,7 +111,22 @@ body {
 }
 
 .header-logo {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  border-radius: var(--radius-sm);
+  transition: transform 0.2s ease-in-out;
+}
+
+.brand-logo:hover {
+  transform: scale(1.05) rotate(-2deg);
 }
 
 .header-title-group h1 {

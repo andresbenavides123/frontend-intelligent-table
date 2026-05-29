@@ -18,11 +18,11 @@ export const STROKES: StrokeSize[] = [
 ];
 
 export const SUBJECTS: SubjectOption[] = [
-    { value: 'Matemáticas', emoji: '📐' },
-    { value: 'Física', emoji: '⚛️' },
-    { value: 'Química', emoji: '🧪' },
-    { value: 'Geometría', emoji: '📏' },
-    { value: 'Álgebra', emoji: '🔢' },
+    { value: 'Matemáticas', emoji: '' },
+    { value: 'Física', emoji: '' },
+    { value: 'Química', emoji: '' },
+    { value: 'Geometría', emoji: '' },
+    { value: 'Álgebra', emoji: '' },
     { value: 'Cálculo', emoji: '∫' },
 ];
 

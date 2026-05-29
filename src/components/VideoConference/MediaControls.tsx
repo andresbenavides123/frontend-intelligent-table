@@ -20,7 +20,7 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
                 aria-label={isAudioEnabled ? 'Silenciar Micrófono' : 'Activar Micrófono'}
                 type="button"
             >
-                {isAudioEnabled ? '🎙️' : '🔇'}
+                {isAudioEnabled ? '' : ''}
             </button>
 
             {/* Cámara */}
@@ -31,7 +31,7 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
                 aria-label={isVideoEnabled ? 'Apagar Cámara' : 'Encender Cámara'}
                 type="button"
             >
-                {isVideoEnabled ? '📷' : '🚫'}
+                {isVideoEnabled ? '' : ''}
             </button>
 
             {/* Compartir Pantalla */}
@@ -42,7 +42,7 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
                 aria-label={isScreenSharing ? 'Dejar de Presentar' : 'Compartir Pantalla'}
                 type="button"
             >
-                {isScreenSharing ? '🛑' : '💻'}
+                {isScreenSharing ? '' : ''}
             </button>
 
             {/* Terminar Llamada — ahora con onClick y feedback visual */}
@@ -53,7 +53,7 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
                 type="button"
                 onClick={onEndCall}
             >
-                ☎️
+                
             </button>
         </div>
     );

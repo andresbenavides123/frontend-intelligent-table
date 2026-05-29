@@ -235,7 +235,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                     ? err.message
                     : 'Error de conexión con el servidor.';
             console.error('[SmartBoard] handleAnalyze error:', err);
-            onFeedbackReceived(`⚠️ ${errorMessage}`);
+            onFeedbackReceived(` ${errorMessage}`);
         } finally {
             onLoadingStateChange(false);
         }
@@ -306,10 +306,10 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
             {/* Panel Header */}
             <div className="panel-header">
                 <div className="panel-title">
-                    <span className="panel-title-icon">✏️</span>
+                    <span className="panel-title-icon"></span>
                     Pizarra Interactiva
                     {chalkMode && (
-                        <span className="chalk-mode-badge">🌙 Modo Pizarra</span>
+                        <span className="chalk-mode-badge"> Modo Pizarra</span>
                     )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -356,7 +356,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
             >
                 {!hasContent && elements.length === 0 && (
                     <div className="canvas-placeholder">
-                        <div className="canvas-placeholder-icon">✍️</div>
+                        <div className="canvas-placeholder-icon"></div>
                         <div className={`canvas-placeholder-text${chalkMode ? ' chalk-placeholder' : ''}`}>
                             Escribe, dibuja o pega una imagen (Ctrl+V)
                         </div>
@@ -441,7 +441,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                     disabled={!boardHasContent || isLoading}
                     aria-label="Limpiar pizarra"
                 >
-                    <span className="btn-icon">🗑️</span>
+                    <span className="btn-icon"></span>
                     Limpiar
                 </button>
 
@@ -453,7 +453,7 @@ export const SmartBoard: React.FC<SmartBoardProps> = ({
                     style={{ flex: 1 }}
                     aria-label="Evaluar con IA"
                 >
-                    {!isLoading && <span className="btn-icon">✨</span>}
+                    {!isLoading && <span className="btn-icon"></span>}
                     {isLoading ? 'Analizando...' : `Evaluar con IA · ${subject}`}
                 </button>
             </div>

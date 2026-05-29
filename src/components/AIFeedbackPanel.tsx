@@ -110,17 +110,17 @@ function classifyLine(line: string): ParsedLine {
     }
 
     // Positive signals
-    if (/✓|✅|correcto|bien|excelente|perfecto|muy bien|acertado|bravo|felicit|logr|éxito|correc/i.test(clean)) {
+    if (/✓||correcto|bien|excelente|perfecto|muy bien|acertado|bravo|felicit|logr|éxito|correc/i.test(clean)) {
         return { type: 'correct', text: clean, raw: clean };
     }
 
     // Error / correction signals
-    if (/✗|❌|error|incorrecto|debería|debe ser|falta|recuerda|incompleto|mal|equivoc|corrig|revisa|ojo[,!:\s]|cuidado|atención/i.test(clean)) {
+    if (/✗||error|incorrecto|debería|debe ser|falta|recuerda|incompleto|mal|equivoc|corrig|revisa|ojo[,!:\s]|cuidado|atención/i.test(clean)) {
         return { type: 'error', text: clean, raw: clean };
     }
 
     // Tip / advice signals
-    if (/💡|tip[:\s]|nota[:\s]|consejo[:\s]|sugerencia|recuerda que|ten en cuenta|important[e:]|considera/i.test(clean)) {
+    if (/|tip[:\s]|nota[:\s]|consejo[:\s]|sugerencia|recuerda que|ten en cuenta|important[e:]|considera/i.test(clean)) {
         return { type: 'tip', text: clean, raw: clean };
     }
 
@@ -195,7 +195,7 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
     if (line.type === 'formula') {
         return (
             <div className="fb-card fb-formula" style={{ animationDelay: delay }}>
-                <span className="fb-card-icon">📐</span>
+                <span className="fb-card-icon"></span>
                 <span className="fb-formula-text">
                     <LatexRenderer text={line.text} />
                 </span>
@@ -217,9 +217,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
     if (line.type === 'correct') {
         return (
             <div className="fb-card fb-correct" style={{ animationDelay: delay }}>
-                <span className="fb-card-icon">✅</span>
+                <span className="fb-card-icon"></span>
                 <span className="fb-card-text">
-                    <LatexRenderer text={line.text.replace(/^[✓✅]\s*/, '')} />
+                    <LatexRenderer text={line.text.replace(/^[✓]\s*/, '')} />
                 </span>
             </div>
         );
@@ -228,9 +228,9 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
     if (line.type === 'error') {
         return (
             <div className="fb-card fb-error" style={{ animationDelay: delay }}>
-                <span className="fb-card-icon">❌</span>
+                <span className="fb-card-icon"></span>
                 <span className="fb-card-text">
-                    <LatexRenderer text={line.text.replace(/^[✗❌]\s*/, '')} />
+                    <LatexRenderer text={line.text.replace(/^[✗]\s*/, '')} />
                 </span>
             </div>
         );
@@ -239,7 +239,7 @@ const LineCard: React.FC<{ line: ParsedLine; index: number }> = ({ line, index }
     if (line.type === 'tip') {
         return (
             <div className="fb-card fb-tip" style={{ animationDelay: delay }}>
-                <span className="fb-card-icon">💡</span>
+                <span className="fb-card-icon"></span>
                 <span className="fb-card-text">
                     <LatexRenderer text={line.text} />
                 </span>
@@ -269,17 +269,17 @@ const SummaryChips: React.FC<{ lines: ParsedLine[] }> = ({ lines }) => {
         <div className="fb-summary-chips">
             {correctCount > 0 && (
                 <span className="fb-chip fb-chip-correct">
-                    ✅ {correctCount} {correctCount === 1 ? 'logro' : 'logros'}
+                     {correctCount} {correctCount === 1 ? 'logro' : 'logros'}
                 </span>
             )}
             {errorCount > 0 && (
                 <span className="fb-chip fb-chip-error">
-                    ❌ {errorCount} {errorCount === 1 ? 'corrección' : 'correcciones'}
+                     {errorCount} {errorCount === 1 ? 'corrección' : 'correcciones'}
                 </span>
             )}
             {tipCount > 0 && (
                 <span className="fb-chip fb-chip-tip">
-                    💡 {tipCount} {tipCount === 1 ? 'consejo' : 'consejos'}
+                     {tipCount} {tipCount === 1 ? 'consejo' : 'consejos'}
                 </span>
             )}
         </div>
@@ -310,7 +310,7 @@ export const AIFeedbackPanel: React.FC<FeedbackPanelProps> = ({
             {/* ── Panel Header ── */}
             <div className="panel-header">
                 <div className="panel-title">
-                    <span className="panel-title-icon">🤖</span>
+                    <span className="panel-title-icon"></span>
                     Tutor IA
                 </div>
                 <div className="fb-header-right">
@@ -359,7 +359,7 @@ export const AIFeedbackPanel: React.FC<FeedbackPanelProps> = ({
                     <div className="feedback-empty">
                         <div className="feedback-empty-illustration">
                             <div className="feedback-empty-orbit" />
-                            <span className="feedback-empty-icon">🎯</span>
+                            <span className="feedback-empty-icon"></span>
                         </div>
                         <h3>Tu tutor está listo</h3>
                         <p>
@@ -368,10 +368,10 @@ export const AIFeedbackPanel: React.FC<FeedbackPanelProps> = ({
                             detalladas al instante.
                         </p>
                         <div className="feedback-hint-chips">
-                            <span className="hint-chip">📐 Ecuaciones</span>
-                            <span className="hint-chip">📊 Gráficas</span>
-                            <span className="hint-chip">🧮 Cálculos</span>
-                            <span className="hint-chip">🔢 Álgebra</span>
+                            <span className="hint-chip"> Ecuaciones</span>
+                            <span className="hint-chip"> Gráficas</span>
+                            <span className="hint-chip"> Cálculos</span>
+                            <span className="hint-chip"> Álgebra</span>
                         </div>
                     </div>
                 )}
@@ -382,8 +382,8 @@ export const AIFeedbackPanel: React.FC<FeedbackPanelProps> = ({
 
                         {/* Meta row */}
                         <div className="fb-meta-row">
-                            <span className="fb-badge fb-badge-gemini">✨ Gemini AI</span>
-                            <span className="fb-badge fb-badge-subject">📚 {subject}</span>
+                            <span className="fb-badge fb-badge-gemini"> Gemini AI</span>
+                            <span className="fb-badge fb-badge-subject"> {subject}</span>
                             <span className="fb-timestamp">{formattedTime()}</span>
                         </div>
 
@@ -394,7 +394,7 @@ export const AIFeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                 <SummaryChips lines={parsedLines} />
                                 {analysisTime !== null && (
                                     <div className="fb-time-note">
-                                        ⏱ Analizado en {analysisTime}s
+                                         Analizado en {analysisTime}s
                                     </div>
                                 )}
                             </div>
@@ -417,7 +417,7 @@ export const AIFeedbackPanel: React.FC<FeedbackPanelProps> = ({
                                 onClick={handleCopy}
                                 title="Copiar retroalimentación completa"
                             >
-                                {copied ? '✅ Copiado' : '📋 Copiar todo'}
+                                {copied ? ' Copiado' : ' Copiar todo'}
                             </button>
                         </div>
                     </div>

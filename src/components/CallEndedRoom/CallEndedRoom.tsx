@@ -11,7 +11,7 @@ export const CallEndedRoom: React.FC<CallEndedRoomProps> = ({ onRejoin, onGoHome
     return (
         <div className="call-ended-container">
             <div className="call-ended-card">
-                <div className="call-ended-icon">👋</div>
+                <div className="call-ended-icon"></div>
                 <h2>Has abandonado la reunión</h2>
                 <p>La videollamada y la sesión de pizarra han finalizado para ti.</p>
                 <div className="call-ended-actions">

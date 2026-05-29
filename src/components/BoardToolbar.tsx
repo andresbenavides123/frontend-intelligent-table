@@ -41,11 +41,11 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
                 id="tool-chalk-mode"
                 className={`tool-btn chalk-mode-btn ${chalkMode ? 'active' : ''}`}
                 onClick={onToggleChalkMode}
-                title={chalkMode ? 'Modo Normal (☀️)' : 'Modo Pizarra (🌙)'}
+                title={chalkMode ? 'Modo Normal ()' : 'Modo Pizarra ()'}
                 aria-label={chalkMode ? 'Cambiar a modo normal' : 'Cambiar a modo pizarra oscura'}
                 aria-pressed={chalkMode}
             >
-                {chalkMode ? '☀️' : '🌙'}
+                {chalkMode ? '' : ''}
             </button>
 
             <div className="toolbar-divider" />
@@ -104,7 +104,7 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
                 title="Borrador"
                 aria-label="Borrador"
             >
-                🧹
+                
             </button>
 
             <button
@@ -115,7 +115,7 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
                 title="Deshacer"
                 aria-label="Deshacer"
             >
-                ↩️
+                
             </button>
 
             <button
@@ -126,7 +126,7 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
                 title="Rehacer"
                 aria-label="Rehacer"
             >
-                ↪️
+                
             </button>
         </div>
     );

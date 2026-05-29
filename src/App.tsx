@@ -181,7 +181,7 @@ function App() {
                 <header className="app-header">
                     <div className="header-brand">
                         <div className="header-logo" aria-label="Smart Edu Board Logo">
-                            🎓
+                            <img src="/logo.png" alt="Smart Edu Board Logo" className="brand-logo" />
                         </div>
                         <div className="header-title-group">
                             <h1>Smart Edu Board</h1>
@@ -223,7 +223,7 @@ function App() {
                             <div className="panel screen-share-panel">
                                 <div className="panel-header">
                                     <div className="panel-title">
-                                        <span className="panel-title-icon">💻</span>
+                                        <span className="panel-title-icon"></span>
                                         Presentando Pantalla
                                     </div>
                                 </div>
@@ -272,12 +272,12 @@ function App() {
                             onClick={() => {
                                 navigator.clipboard
                                     .writeText(window.location.href)
-                                    .then(() => showToast('✅ Enlace copiado al portapapeles'))
-                                    .catch(() => showToast('❌ No se pudo copiar el enlace'));
+                                    .then(() => showToast(' Enlace copiado al portapapeles'))
+                                    .catch(() => showToast(' No se pudo copiar el enlace'));
                             }}
                             title="Copiar enlace de la sala"
                         >
-                            🔗 Copiar Enlace
+                             Copiar Enlace
                         </button>
                     </div>
                     <div className="footer-center">
@@ -292,8 +292,8 @@ function App() {
                         />
                     </div>
                     <div className="footer-right">
-                        <button className="footer-btn" title="Detalles">ℹ️</button>
-                        <button className="footer-btn" title="Chat">💬</button>
+                        <button className="footer-btn" title="Detalles"></button>
+                        <button className="footer-btn" title="Chat"></button>
                     </div>
                 </footer>
             </div>
