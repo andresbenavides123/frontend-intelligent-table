@@ -11,8 +11,12 @@ import { DraggableElement } from './DraggableElement';
 import html2canvas from 'html2canvas';
 import { useWebSocketContext } from '../context/WebSocketContext';
 
-/** Throttle delay (ms) for board-sync WS messages to avoid flooding on rapid strokes */
-const BOARD_SYNC_DEBOUNCE_MS = 60;
+/** Throttle delay (ms) for board-sync WS messages.
+ *  200 ms strikes a balance between real-time feel and avoiding WS flooding,
+ *  which is especially important on free-tier backends (e.g. Render) that may
+ *  have limited throughput or introduce latency on incoming messages. */
+const BOARD_SYNC_DEBOUNCE_MS = 200;
+
 
 export const SmartBoard: React.FC<SmartBoardProps> = ({
     onFeedbackReceived,

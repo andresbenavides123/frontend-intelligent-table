@@ -205,8 +205,12 @@ function App() {
                 {/* Main Layout */}
                 <main className="main-content">
                     {/* Left: Video Call */}
+                    {/* stream is always the camera; screenStream is passed separately so
+                        WebRTC can replace the outgoing video track without changing the
+                        local preview (local video always shows the camera, not the screen). */}
                     <VideoConferencePanel
-                        stream={isScreenSharing && screenStream ? screenStream : stream}
+                        stream={stream}
+                        screenStream={isScreenSharing ? screenStream : null}
                         error={error}
                         isVideoEnabled={isVideoEnabled}
                         isAudioEnabled={isAudioEnabled}

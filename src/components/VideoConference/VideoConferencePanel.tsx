@@ -2,37 +2,58 @@ import React, { useEffect, useRef } from 'react';
 import { useWebRTC } from '../../hooks/useWebRTC';
 
 export interface VideoConferencePanelProps {
+    /** Local camera + microphone stream. Always the camera, even when screen sharing. */
     stream: MediaStream | null;
+    /**
+     * Active screen-share stream, or null when not sharing.
+     * This stream replaces the outgoing video track in the peer connection
+     * without affecting the local camera preview.
+     */
+    screenStream?: MediaStream | null;
     error: string | null;
     isVideoEnabled: boolean;
     isAudioEnabled: boolean;
-    /** Name of the local user — used to render the avatar initial when camera is off */
+    /** Local user's display name — used to render an avatar initial when the camera is off */
     userName?: string;
 }
 
+/**
+ * VideoConferencePanel — renders local and remote video feeds for a 1-on-1 session.
+ *
+ * The local preview always shows the camera stream regardless of screen sharing.
+ * Screen share is sent to the remote peer via WebRTC track replacement.
+ */
 export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
     stream,
+    screenStream = null,
     error,
     isVideoEnabled,
     isAudioEnabled,
     userName = '',
 }) => {
-    const localVideoRef = useRef<HTMLVideoElement>(null);
+    const localVideoRef  = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
-    const { remoteStream } = useWebRTC(stream);
 
-    // Derive avatar initial from the user's name, falling back to "?"
+    // Pass both streams to the WebRTC hook:
+    //  - `stream`       → camera tracks added to the peer connection + shown in local preview
+    //  - `screenStream` → replaces only the outgoing video track (no local preview change)
+    const { remoteStream } = useWebRTC(stream, screenStream);
+
     const localInitial = userName.trim().charAt(0).toUpperCase() || '?';
 
+    // Bind the camera stream to the local <video> element
     useEffect(() => {
-        if (localVideoRef.current && stream) {
-            localVideoRef.current.srcObject = stream;
+        const el = localVideoRef.current;
+        if (el && stream) {
+            el.srcObject = stream;
         }
     }, [stream]);
 
+    // Bind the remote stream to the remote <video> element
     useEffect(() => {
-        if (remoteVideoRef.current && remoteStream) {
-            remoteVideoRef.current.srcObject = remoteStream;
+        const el = remoteVideoRef.current;
+        if (el && remoteStream) {
+            el.srcObject = remoteStream;
         }
     }, [remoteStream]);
 
@@ -48,7 +69,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
             <div className="video-grid">
                 {error && <div className="video-error">{error}</div>}
 
-                {/* Local Video */}
+                {/* ── Local video — always camera, never screen share ── */}
                 <div className="video-container local-video">
                     {isVideoEnabled ? (
                         <video
@@ -69,7 +90,7 @@ export const VideoConferencePanel: React.FC<VideoConferencePanelProps> = ({
                     </div>
                 </div>
 
-                {/* Remote Participant */}
+                {/* ── Remote participant ── */}
                 <div className="video-container remote-video">
                     {remoteStream ? (
                         <video

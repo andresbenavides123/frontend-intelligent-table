@@ -47,9 +47,18 @@ export const useWebSocket = (roomId: string | null, token: string | null) => {
             connectHeaders: token ? {
                 Authorization: `Bearer ${token}`
             } : {},
-            reconnectDelay: 5000,
-            heartbeatIncoming: 4000,
-            heartbeatOutgoing: 4000,
+            /**
+             * Reconnect delay in milliseconds.
+             * 8 s gives Render's free-tier service time to wake up from a cold start
+             * before we attempt the first reconnect, avoiding rapid failed retries.
+             */
+            reconnectDelay: 8000,
+            /**
+             * Heartbeat intervals (ms). 10 s keeps the WS connection alive through
+             * Render's idle-connection timeout without spamming the channel.
+             */
+            heartbeatIncoming: 10000,
+            heartbeatOutgoing: 10000,
             onConnect: () => {
                 setIsConnected(true);
                 console.log(`Connected to WebSocket in room: ${roomId}`);
@@ -89,11 +98,13 @@ export const useWebSocket = (roomId: string | null, token: string | null) => {
             },
             onDisconnect: () => {
                 setIsConnected(false);
-                console.log('Disconnected from WebSocket');
+                console.log('[WS] Disconnected from WebSocket');
             },
             onStompError: (frame) => {
-                console.error('Broker reported error: ' + frame.headers['message']);
-                console.error('Additional details: ' + frame.body);
+                console.error('[WS] Broker error:', frame.headers['message'], frame.body);
+            },
+            onWebSocketClose: (evt) => {
+                console.warn('[WS] WebSocket closed — code:', evt.code, '— will reconnect…');
             },
         });
 
