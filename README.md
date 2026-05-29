@@ -97,3 +97,7 @@ npm run dev
 ## 📄 Licencia
 
 Proyecto académico y educativo.
+
+## Instalación
+Para instalar todas las dependencias necesarias del proyecto, ejecuta en la consola:
+```npm install```
