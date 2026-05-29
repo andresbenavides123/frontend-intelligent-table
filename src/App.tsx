@@ -322,3 +322,4 @@ function App() {
 }
 
 export default App;
+// Mejoras visuales y optimización del frontend
